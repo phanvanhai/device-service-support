@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/edgexfoundry/device-service-package/transceiver/serial"
+	"github.com/phanvanhai/device-service-support/transceiver/serial"
 )
 
 type Frame struct {

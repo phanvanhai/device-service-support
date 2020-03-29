@@ -5,10 +5,10 @@ import (
 	"strings"
 
 	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
-	"github.com/edgexfoundry/device-service-package/network/zigbee"
-	"github.com/edgexfoundry/device-service-package/transceiver"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
+	"github.com/phanvanhai/device-service-support/network/zigbee"
+	"github.com/phanvanhai/device-service-support/transceiver"
 )
 
 const (

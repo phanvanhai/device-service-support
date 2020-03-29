@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/edgexfoundry/device-service-package/network/zigbee/common"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
+	"github.com/phanvanhai/device-service-support/network/zigbee/common"
 
 	sdk "github.com/edgexfoundry/device-sdk-go"
 )

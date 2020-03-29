@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/edgexfoundry/device-service-package/support/pubsub"
+	"github.com/phanvanhai/device-service-support/support/pubsub"
 	"github.com/tarm/serial"
 )
 

@@ -3,9 +3,9 @@ package zigbee
 import (
 	"sync"
 
-	"github.com/edgexfoundry/device-service-package/support/pubsub"
-	"github.com/edgexfoundry/device-service-package/transceiver"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
+	"github.com/phanvanhai/device-service-support/support/pubsub"
+	"github.com/phanvanhai/device-service-support/transceiver"
 )
 
 var zb *Zigbee

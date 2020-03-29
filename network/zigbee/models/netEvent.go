@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
-	"github.com/edgexfoundry/device-service-package/network/zigbee/cache"
+	"github.com/phanvanhai/device-service-support/network/zigbee/cache"
 )
 
 type NetEvent struct {

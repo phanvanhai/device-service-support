@@ -6,16 +6,16 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/edgexfoundry/device-service-package/network/zigbee/cache"
-	"github.com/edgexfoundry/device-service-package/network/zigbee/common"
-	"github.com/edgexfoundry/device-service-package/network/zigbee/models"
+	"github.com/phanvanhai/device-service-support/network/zigbee/cache"
+	"github.com/phanvanhai/device-service-support/network/zigbee/common"
+	"github.com/phanvanhai/device-service-support/network/zigbee/models"
 
 	sdk "github.com/edgexfoundry/device-sdk-go"
 	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
-	"github.com/edgexfoundry/device-service-package/support/pubsub"
-	"github.com/edgexfoundry/device-service-package/transceiver"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	contract "github.com/edgexfoundry/go-mod-core-contracts/models"
+	"github.com/phanvanhai/device-service-support/support/pubsub"
+	"github.com/phanvanhai/device-service-support/transceiver"
 )
 
 func initialize(lc logger.LoggingClient, tc transceiver.Transceiver, config map[string]string) (*Zigbee, error) {
