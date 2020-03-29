@@ -73,8 +73,8 @@ func (r NetReading) String() string {
 	return string(out)
 }
 
-func (r *NetReading) toCommandValue(deviceID string) (cv *sdkModel.CommandValue, err error) {
-	resourceName, err := cache.Cache().DeviceResourceByNetResource(deviceID, r.NetResource)
+func (r *NetReading) toCommandValue(name string) (cv *sdkModel.CommandValue, err error) {
+	resourceName, err := cache.Cache().DeviceResourceByNetResource(name, r.NetResource)
 	if err != nil {
 		return
 	}
@@ -100,7 +100,7 @@ func (r *NetReading) toCommandValue(deviceID string) (cv *sdkModel.CommandValue,
 	return
 }
 
-func commandValueToNetReading(deviceID string, cv *sdkModel.CommandValue) (netReading *NetReading, err error) {
+func commandValueToNetReading(cv *sdkModel.CommandValue) (netReading *NetReading, err error) {
 	netResourceName, err := cache.Cache().NetResourceByDeviceResource(cv.DeviceResourceName)
 	if err != nil {
 		return
@@ -125,7 +125,7 @@ func commandValueToNetReading(deviceID string, cv *sdkModel.CommandValue) (netRe
 	return
 }
 
-func commandRequestToNetReading(deviceID string, rq *sdkModel.CommandRequest) (netReading *NetReading, err error) {
+func commandRequestToNetReading(rq *sdkModel.CommandRequest) (netReading *NetReading, err error) {
 	netResourceName, err := cache.Cache().NetResourceByDeviceResource(rq.DeviceResourceName)
 	if err != nil {
 		return

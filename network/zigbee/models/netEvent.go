@@ -58,33 +58,35 @@ func (e NetEvent) String() string {
 	return string(out)
 }
 
-func (e *NetEvent) ToEdgeEvent() (deviceID string, cvs []*sdkModel.CommandValue, err error) {
-	deviceID, err = cache.Cache().DeviceIDByNetID(e.NetDevice)
+func (e *NetEvent) ToEdgeEvent() (async sdkModel.AsyncValues, err error) {
+	devName, err := cache.Cache().DeviceNameByNetID(e.NetDevice)
 	if err != nil {
-		return "", nil, err
+		return sdkModel.AsyncValues{}, err
 	}
 
-	cvs = make([]*sdkModel.CommandValue, 0, len(e.NetReadings))
+	cvs := make([]*sdkModel.CommandValue, 0, len(e.NetReadings))
 	for _, netReading := range e.NetReadings {
-		cv, err := netReading.toCommandValue(deviceID)
+		cv, err := netReading.toCommandValue(devName)
 		if err != nil {
-			return "", nil, err
+			return sdkModel.AsyncValues{}, err
 		}
 		cvs = append(cvs, cv)
 	}
 
+	async.DeviceName = devName
+	async.CommandValues = cvs
 	return
 }
 
-func CommandValueToNetEvent(deviceID string, cvs []*sdkModel.CommandValue) (e *NetEvent, err error) {
-	netDevice, err := cache.Cache().NetIDByDeviceID(deviceID)
+func CommandValueToNetEvent(name string, cvs []*sdkModel.CommandValue) (e *NetEvent, err error) {
+	netDevice, err := cache.Cache().NetIDByDeviceName(name)
 	if err != nil {
 		return nil, err
 	}
 
 	netReadings := make([]NetReading, 0, len(cvs))
 	for _, cv := range cvs {
-		reading, err := commandValueToNetReading(deviceID, cv)
+		reading, err := commandValueToNetReading(cv)
 		if err != nil {
 			return nil, err
 		}
@@ -98,15 +100,15 @@ func CommandValueToNetEvent(deviceID string, cvs []*sdkModel.CommandValue) (e *N
 	return
 }
 
-func CommandRequestToNetEvent(deviceID string, rqs []*sdkModel.CommandRequest) (e *NetEvent, err error) {
-	netDevice, err := cache.Cache().NetIDByDeviceID(deviceID)
+func CommandRequestToNetEvent(name string, rqs []*sdkModel.CommandRequest) (e *NetEvent, err error) {
+	netDevice, err := cache.Cache().NetIDByDeviceName(name)
 	if err != nil {
 		return nil, err
 	}
 
 	netReadings := make([]NetReading, 0, len(rqs))
 	for _, rq := range rqs {
-		reading, err := commandRequestToNetReading(deviceID, rq)
+		reading, err := commandRequestToNetReading(rq)
 		if err != nil {
 			return nil, err
 		}

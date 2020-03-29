@@ -16,13 +16,15 @@ import (
 var zc *zigbeeCache
 
 type ZigbeeCache interface {
-	DeviceIDByNetID(netID string) (string, error)
-	NetIDByDeviceID(deviceID string) (string, error)
-	DeviceResourceByNetResource(deviceID string, netResource string) (string, error)
+	DeviceNameByID(id string) string
+	DeviceIDByName(name string) string
+	DeviceNameByNetID(netID string) (string, error)
+	NetIDByDeviceName(name string) (string, error)
+	DeviceResourceByNetResource(name string, netResource string) (string, error)
 	NetResourceByDeviceResource(resourceName string) (string, error)
 	UpdateDeviceCache(device models.Device)
-	DeleteDeviceCache(deviceID string)
-	GetType(deviceID string) string
+	DeleteDeviceCache(name string)
+	GetType(name string) string
 	GenerateNetGroupID() (string, error)
 }
 
@@ -34,6 +36,8 @@ type netResourceID struct {
 type zigbeeCache struct {
 	edgeNetDeviceID map[string]string
 	netDeviceID     map[string]string
+	deviceIDName    map[string]string
+	deviceNameID    map[string]string
 	edgeNetResource map[string]netResourceID
 	netEdgeResource map[netResourceID]string
 	edgeObjectType  map[string]string
@@ -41,7 +45,23 @@ type zigbeeCache struct {
 	mutex           sync.Mutex
 }
 
-func (zc *zigbeeCache) DeviceIDByNetID(netID string) (string, error) {
+func (zc *zigbeeCache) DeviceNameByID(id string) string {
+	zc.mutex.Lock()
+	defer zc.mutex.Unlock()
+
+	name, _ := zc.deviceIDName[id]
+	return name
+}
+
+func (zc *zigbeeCache) DeviceIDByName(name string) string {
+	zc.mutex.Lock()
+	defer zc.mutex.Unlock()
+
+	id, _ := zc.deviceNameID[name]
+	return id
+}
+
+func (zc *zigbeeCache) DeviceNameByNetID(netID string) (string, error) {
 	zc.mutex.Lock()
 	defer zc.mutex.Unlock()
 
@@ -49,26 +69,32 @@ func (zc *zigbeeCache) DeviceIDByNetID(netID string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("Not found device ID by network ID: %s in cache", netID)
 	}
-	return id, nil
+	name, _ := zc.deviceIDName[id]
+	return name, nil
 }
 
-func (zc *zigbeeCache) NetIDByDeviceID(deviceID string) (string, error) {
+func (zc *zigbeeCache) NetIDByDeviceName(name string) (string, error) {
 	zc.mutex.Lock()
 	defer zc.mutex.Unlock()
 
-	id, ok := zc.edgeNetDeviceID[deviceID]
+	id, ok := zc.deviceNameID[name]
 	if !ok {
-		return "", fmt.Errorf("Not found network ID for device ID: %s in cache", deviceID)
+		return "", fmt.Errorf("Not found device name: %s in cache", name)
 	}
-	return id, nil
+
+	netID, ok := zc.edgeNetDeviceID[id]
+	if !ok {
+		return "", fmt.Errorf("Not found network ID for device name: %s in cache", name)
+	}
+	return netID, nil
 }
 
-func (zc *zigbeeCache) DeviceResourceByNetResource(deviceID string, netResource string) (string, error) {
+func (zc *zigbeeCache) DeviceResourceByNetResource(name string, netResource string) (string, error) {
 	zc.mutex.Lock()
 	defer zc.mutex.Unlock()
 
 	svc := sdk.RunningService()
-	d, err := svc.GetDeviceByID(deviceID)
+	d, err := svc.GetDeviceByName(name)
 	if err != nil {
 		return "", err
 	}
@@ -77,9 +103,10 @@ func (zc *zigbeeCache) DeviceResourceByNetResource(deviceID string, netResource 
 		netResource: netResource,
 		profileID:   d.Profile.Id,
 	}
+
 	rs, ok := zc.netEdgeResource[netResID]
 	if !ok {
-		return "", fmt.Errorf("Not found device resource by network resource: %s and device ID: %s in cache", netResource, deviceID)
+		return "", fmt.Errorf("Not found device resource by network resource: %s and device name: %s in cache", netResource, name)
 	}
 	return rs, nil
 }
@@ -147,7 +174,7 @@ func (zc *zigbeeCache) UpdateDeviceCache(device *models.Device) {
 	objectType := getTypeFromProtocols(device.Protocols)
 	if netID == "" {
 		// loai bo device
-		zc.deleteDevice(device.Id)
+		zc.deleteDevice(device.Name)
 		return
 	}
 
@@ -158,6 +185,13 @@ func (zc *zigbeeCache) UpdateDeviceCache(device *models.Device) {
 		zc.groupAddress = append(zc.groupAddress, addr)
 	}
 
+	oldName := zc.deviceIDName[device.Id]
+	if oldName != "" {
+		delete(zc.deviceNameID, oldName)
+	}
+
+	zc.deviceNameID[device.Name] = device.Id
+	zc.deviceIDName[device.Id] = device.Name
 	zc.edgeNetDeviceID[device.Id] = netID
 	zc.netDeviceID[netID] = device.Id
 	zc.edgeObjectType[device.Id] = objectType
@@ -167,34 +201,42 @@ func (zc *zigbeeCache) UpdateDeviceCache(device *models.Device) {
 func (zc *zigbeeCache) deleteGroupAddressByNetID(netID string) {
 	netInt64, err := strconv.ParseUint(netID, 16, 32)
 	if err == nil {
-		prefixNet := netInt64 & 0xFFFF0000
-		if prefixNet == common.PrefixHexValueNetGroupIDConst {
-			addr := int(netInt64 & 0xFFFFF)
-			for i, v := range zc.groupAddress {
-				if v == addr {
-					zc.groupAddress[i] = zc.groupAddress[len(zc.groupAddress)-1]
-					zc.groupAddress = zc.groupAddress[:len(zc.groupAddress)-1]
-				}
+		addr := int(netInt64 & 0xFFFFF)
+		for i, v := range zc.groupAddress {
+			if v == addr {
+				zc.groupAddress[i] = zc.groupAddress[len(zc.groupAddress)-1]
+				zc.groupAddress = zc.groupAddress[:len(zc.groupAddress)-1]
 			}
 		}
 	}
 }
 
-func (zc *zigbeeCache) deleteDevice(deviceID string) {
+func (zc *zigbeeCache) deleteDevice(name string) {
+	deviceID, ok := zc.deviceNameID[name]
+	if !ok {
+		return
+	}
+
 	netDevice, ok := zc.edgeNetDeviceID[deviceID]
 	if ok {
-		zc.deleteGroupAddressByNetID(netDevice)
+		t, _ := zc.edgeObjectType[deviceID]
+		if t == common.GroupTypeConst {
+			zc.deleteGroupAddressByNetID(netDevice)
+		}
+
+		delete(zc.deviceNameID, name)
+		delete(zc.deviceIDName, deviceID)
 		delete(zc.edgeNetDeviceID, deviceID)
 		delete(zc.netDeviceID, netDevice)
 		delete(zc.edgeObjectType, deviceID)
 	}
 }
 
-func (zc *zigbeeCache) DeleteDeviceCache(deviceID string) {
+func (zc *zigbeeCache) DeleteDeviceCache(name string) {
 	zc.mutex.Lock()
 	defer zc.mutex.Unlock()
 
-	zc.deleteDevice(deviceID)
+	zc.deleteDevice(name)
 }
 
 func (zc *zigbeeCache) GenerateNetGroupID() (string, error) {
@@ -216,13 +258,24 @@ func (zc *zigbeeCache) GenerateNetGroupID() (string, error) {
 			}
 		}
 	}
+
+	zc.mutex.Lock()
+	defer zc.mutex.Unlock()
+
 	zc.groupAddress = append(zc.groupAddress, addr)
 	addr64 := int64(common.PrefixHexValueNetGroupIDConst<<16 | addr)
 	straddr := strconv.FormatInt(addr64, 16)
 	return straddr, nil
 }
 
-func (zc *zigbeeCache) GetType(deviceID string) string {
+func (zc *zigbeeCache) GetType(name string) string {
+	zc.mutex.Lock()
+	defer zc.mutex.Unlock()
+
+	deviceID, ok := zc.deviceNameID[name]
+	if !ok {
+		return ""
+	}
 	t, _ := zc.edgeObjectType[deviceID]
 	return t
 }
@@ -235,6 +288,8 @@ func initCache() {
 
 	defaultIDSize := len(ds) * 2
 	defaultResourceSize := len(prs) * 3
+	idName := make(map[string]string, defaultIDSize)
+	nameID := make(map[string]string, defaultIDSize)
 	edgeNetDeviceID := make(map[string]string, defaultIDSize)
 	netDeviceID := make(map[string]string, defaultIDSize)
 	edgeNetResource := make(map[string]netResourceID, defaultResourceSize)
@@ -243,6 +298,8 @@ func initCache() {
 	groups := make([]int, 0, defaultIDSize)
 
 	zc = &zigbeeCache{
+		deviceNameID:    nameID,
+		deviceIDName:    idName,
 		edgeNetDeviceID: edgeNetDeviceID,
 		edgeNetResource: edgeNetResource,
 		netDeviceID:     netDeviceID,
