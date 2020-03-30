@@ -59,7 +59,7 @@ func (db *DB) UpdateScenario(sr models.Device) {
 }
 
 func (db *DB) UpdateScenario(dv models.Device) {
-
+	return
 }
 
 func (db *DB) DeleteGroup(gr models.Device) {
@@ -71,7 +71,7 @@ func (db *DB) DeleteScenario(sr models.Device) {
 }
 
 func (db *DB) DeleteScenario(dv models.Device) {
-
+	return
 }
 
 func (db *DB) GroupDotElement(id string) []GroupContent {

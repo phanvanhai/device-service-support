@@ -347,13 +347,23 @@ func (zb *Zigbee) ReadCommands(name string, reqs []*sdkModel.CommandRequest) ([]
 		return nil, err
 	}
 
-	rawRequest, err := json.Marshal(netEvent)
+	rq := models.CommandPacket{
+		Header: models.Header{
+			Cmd: common.CommandCmdConst,
+		},
+		NetEvent: *netEvent,
+	}
+	rawRequest, err := json.Marshal(rq)
 	if err != nil {
 		return nil, err
 	}
 
 	filter := zb.filterCommand(name)
 	rep, err := zb.sendRequestWithResponse(rawRequest, filter)
+	if err != nil {
+		return nil, err
+	}
+
 	r := models.CommandPacket{}
 	err = json.Unmarshal(rep.([]byte), &r)
 	if err != nil {
@@ -381,13 +391,23 @@ func (zb *Zigbee) WriteCommands(name string, reqs []*sdkModel.CommandRequest, pa
 		return err
 	}
 
-	rawRequest, err := json.Marshal(netEvent)
+	rq := models.CommandPacket{
+		Header: models.Header{
+			Cmd: common.CommandCmdConst,
+		},
+		NetEvent: *netEvent,
+	}
+	rawRequest, err := json.Marshal(rq)
 	if err != nil {
 		return err
 	}
 
 	filter := zb.filterCommand(name)
 	rep, err := zb.sendRequestWithResponse(rawRequest, filter)
+	if err != nil {
+		return err
+	}
+
 	r := models.CommandPacket{}
 	err = json.Unmarshal(rep.([]byte), &r)
 	if err != nil {
