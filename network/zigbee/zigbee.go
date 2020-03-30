@@ -89,6 +89,10 @@ func (zb *Zigbee) AddObject(newObject *contract.Device) (*contract.Device, error
 		}
 
 		rep, err := zb.sendRequestWithResponse(rawRequest, filterAddObject)
+		if err != nil {
+			return nil, err
+		}
+
 		r := models.DevicePacket{}
 		err = json.Unmarshal(rep.([]byte), &r)
 		if err != nil {
@@ -178,6 +182,10 @@ func (zb *Zigbee) DeleteObject(name string, protocols map[string]contract.Protoc
 		}
 
 		rep, err := zb.sendRequestWithResponse(rawRequest, filterAddObject)
+		if err != nil {
+			return err
+		}
+
 		r := models.DevicePacket{}
 		err = json.Unmarshal(rep.([]byte), &r)
 		if err != nil {
