@@ -11,14 +11,14 @@ import (
 )
 
 func initialize(config map[string]string) (*Serial, error) {
-	port, ok := config[PORTSERIAL]
+	port, ok := config[PortSerialConfigName]
 	if ok != true {
 		return nil, fmt.Errorf("Khong co thong tin Port cho Serial")
 	}
 
 	var baud int
 	var err error
-	baudStr, ok := config[BAUDSERIAL]
+	baudStr, ok := config[BaudSerialConfigName]
 	if ok != true {
 		baud = DEFAULTBAUD
 	} else {
@@ -35,7 +35,7 @@ func initialize(config map[string]string) (*Serial, error) {
 		return nil, err
 	}
 
-	p := pubsub.NewPublisher(TIMEPUB*time.Second, CHANSIZEPUB)
+	p := pubsub.NewPublisher(TimePubDefault*time.Second, ChanSizeDefault)
 
 	dr := &Serial{
 		serial:     serialPort,

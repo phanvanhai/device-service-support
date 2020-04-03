@@ -8,7 +8,8 @@ import (
 	"sync"
 
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
-	"github.com/phanvanhai/device-service-support/network/zigbee/common"
+	"github.com/phanvanhai/device-service-support/network/zigbee/cm"
+	"github.com/phanvanhai/device-service-support/support/common"
 
 	sdk "github.com/edgexfoundry/device-sdk-go"
 )
@@ -124,11 +125,11 @@ func (zc *zigbeeCache) NetResourceByDeviceResource(resourceName string) (string,
 }
 
 func getNetIDFromProtocols(p map[string]models.ProtocolProperties) string {
-	pp, ok := p[common.ProtocolNameConst]
+	pp, ok := p[common.GeneralProtocolNameConst]
 	if !ok {
 		return ""
 	}
-	id, ok := pp[common.IDPropertyConst]
+	id, ok := pp[cm.NetIDProperty]
 	if !ok {
 		return ""
 	}
@@ -136,7 +137,7 @@ func getNetIDFromProtocols(p map[string]models.ProtocolProperties) string {
 }
 
 func getTypeFromProtocols(p map[string]models.ProtocolProperties) string {
-	pp, ok := p[common.ProtocolNameConst]
+	pp, ok := p[common.GeneralProtocolNameConst]
 	if !ok {
 		return ""
 	}
@@ -148,7 +149,7 @@ func getTypeFromProtocols(p map[string]models.ProtocolProperties) string {
 }
 
 func getNetResourceFromDeviceResource(dr *models.DeviceResource) string {
-	netResource, _ := dr.Attributes[common.AttributeNetResource]
+	netResource, _ := dr.Attributes[cm.AttributeNetResource]
 	return netResource
 }
 
@@ -201,7 +202,7 @@ func (zc *zigbeeCache) UpdateDeviceCache(device *models.Device) {
 func (zc *zigbeeCache) deleteGroupAddressByNetID(netID string) {
 	netInt64, err := strconv.ParseUint(netID, 16, 32)
 	if err == nil {
-		addr := int(netInt64 & 0xFFFFF)
+		addr := int(netInt64 & 0xFFFF)
 		for i, v := range zc.groupAddress {
 			if v == addr {
 				zc.groupAddress[i] = zc.groupAddress[len(zc.groupAddress)-1]
@@ -263,7 +264,7 @@ func (zc *zigbeeCache) GenerateNetGroupID() (string, error) {
 	defer zc.mutex.Unlock()
 
 	zc.groupAddress = append(zc.groupAddress, addr)
-	addr64 := int64(common.PrefixHexValueNetGroupIDConst<<16 | addr)
+	addr64 := int64(cm.PrefixHexValueNetGroupID<<16 | addr)
 	straddr := strconv.FormatInt(addr64, 16)
 	return straddr, nil
 }

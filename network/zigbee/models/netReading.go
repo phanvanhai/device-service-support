@@ -79,17 +79,20 @@ func (r *NetReading) toCommandValue(name string) (cv *sdkModel.CommandValue, err
 		return
 	}
 
-	value, err := base64.StdEncoding.DecodeString(r.NetValue)
-	if err != nil {
-		return
-	}
-
 	switch r.NetValueType {
 	case sdkModel.Binary:
+		value, err := base64.StdEncoding.DecodeString(r.NetValue)
+		if err != nil {
+			return nil, err
+		}
 		cv, err = sdkModel.NewBinaryValue(resourceName, r.NetOrigin, value)
 	case sdkModel.String:
-		cv = sdkModel.NewStringValue(resourceName, r.NetOrigin, string(value))
+		cv = sdkModel.NewStringValue(resourceName, r.NetOrigin, r.NetValue)
 	default:
+		value, err := base64.StdEncoding.DecodeString(r.NetValue)
+		if err != nil {
+			return nil, err
+		}
 		cv = &sdkModel.CommandValue{
 			DeviceResourceName: resourceName,
 			Origin:             r.NetOrigin,
@@ -117,7 +120,8 @@ func commandValueToNetReading(cv *sdkModel.CommandValue) (netReading *NetReading
 		netReading.NetValue = base64.StdEncoding.EncodeToString(cv.BinValue)
 	case sdkModel.String:
 		value, _ := cv.StringValue()
-		netReading.NetValue = base64.StdEncoding.EncodeToString([]byte(value))
+		// netReading.NetValue = base64.StdEncoding.EncodeToString([]byte(value))
+		netReading.NetValue = value
 	default:
 		netReading.NetValue = base64.StdEncoding.EncodeToString(cv.NumericValue)
 	}

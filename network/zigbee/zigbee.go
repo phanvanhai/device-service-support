@@ -4,10 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strconv"
 	"time"
 
+	"github.com/phanvanhai/device-service-support/support/common"
+
 	"github.com/phanvanhai/device-service-support/network/zigbee/cache"
-	"github.com/phanvanhai/device-service-support/network/zigbee/common"
+	"github.com/phanvanhai/device-service-support/network/zigbee/cm"
+
 	"github.com/phanvanhai/device-service-support/network/zigbee/models"
 
 	sdk "github.com/edgexfoundry/device-sdk-go"
@@ -18,13 +22,55 @@ import (
 	"github.com/phanvanhai/device-service-support/transceiver"
 )
 
+var (
+	requestTimeout  int64
+	responseTimeout int64
+)
+
 func initialize(lc logger.LoggingClient, tc transceiver.Transceiver, config map[string]string) (*Zigbee, error) {
 	zb := &Zigbee{
 		logger: lc,
 		tc:     tc,
 		config: config,
 	}
-	zb.eventBus = pubsub.NewPublisher(common.TIMEPUB*time.Second, common.CHANSIZEPUB)
+
+	timePub := cm.EventPublishTimeDefault
+	timePubStr, ok := config[cm.EventPublishTimeConfigName]
+	if ok {
+		v, err := strconv.ParseInt(timePubStr, 10, 64)
+		if err == nil {
+			timePub = v
+		}
+	}
+
+	bufferSize := cm.EventBufferSizeDefault
+	bufferSizeStr, ok := config[cm.EventBufferSizeConfigName]
+	if ok {
+		v, err := strconv.ParseInt(bufferSizeStr, 10, 32)
+		if err == nil {
+			bufferSize = int(v)
+		}
+	}
+
+	requestTimeout = cm.RequestTimeoutDefault
+	requestTimeoutStr, ok := config[cm.RequestTimeoutConfigName]
+	if ok {
+		v, err := strconv.ParseInt(requestTimeoutStr, 10, 64)
+		if err == nil {
+			requestTimeout = v
+		}
+	}
+
+	responseTimeout = cm.ResponseTimoutDefault
+	responseTimeoutStr, ok := config[cm.ResponseTimoutConfigName]
+	if ok {
+		v, err := strconv.ParseInt(responseTimeoutStr, 10, 64)
+		if err == nil {
+			responseTimeout = v
+		}
+	}
+
+	zb.eventBus = pubsub.NewPublisher(time.Duration(timePub)*time.Millisecond, int(bufferSize))
 	cache.Cache()
 	go zb.distributionEventRoutine()
 	return zb, nil
@@ -60,7 +106,7 @@ func (zb *Zigbee) AddObject(newObject *contract.Device) (*contract.Device, error
 
 	pp, ok := getNetworkProperties(newObject)
 	if !ok {
-		return nil, fmt.Errorf("Loi khong co thong tin Protocols.%s", common.ProtocolNameConst)
+		return nil, fmt.Errorf("Loi khong co thong tin Protocols.%s", common.GeneralProtocolNameConst)
 	}
 
 	objectType, _ := pp[common.TypePropertyConst]
@@ -70,15 +116,15 @@ func (zb *Zigbee) AddObject(newObject *contract.Device) (*contract.Device, error
 
 	switch objectType {
 	case common.DeviceTypeConst:
-		mac, _ := pp[common.MACPropertyConst]
-		lk, _ := pp[common.LinkKeyPropertyConst]
+		mac, _ := pp[cm.MACProperty]
+		lk, _ := pp[cm.LinkKeyProperty]
 		if mac == "" {
 			return nil, fmt.Errorf("Loi khong co thong tin MAC cua thiet bi")
 		}
 
 		devPacket := models.DevicePacket{
 			Header: models.Header{
-				Cmd: common.AddObjectCmdConst,
+				Cmd: cm.AddObjectCmdConst,
 			},
 			MAC:     mac,
 			LinkKey: lk,
@@ -98,13 +144,13 @@ func (zb *Zigbee) AddObject(newObject *contract.Device) (*contract.Device, error
 		if err != nil {
 			return nil, err
 		}
-		if r.StatusCode != uint8(common.Success) {
+		if r.StatusCode != uint8(cm.Success) {
 			return nil, fmt.Errorf(r.StatusMessage)
 		}
 
 		netID := r.NetDevice
-		pp[common.IDPropertyConst] = netID
-		newObject.Protocols[common.ProtocolNameConst] = pp
+		pp[cm.NetIDProperty] = netID
+		newObject.Protocols[common.GeneralProtocolNameConst] = pp
 
 		return newObject, nil
 	case common.GroupTypeConst:
@@ -113,8 +159,8 @@ func (zb *Zigbee) AddObject(newObject *contract.Device) (*contract.Device, error
 			return nil, err
 		}
 
-		pp[common.IDPropertyConst] = netID
-		newObject.Protocols[common.ProtocolNameConst] = pp
+		pp[cm.NetIDProperty] = netID
+		newObject.Protocols[common.GeneralProtocolNameConst] = pp
 		return newObject, nil
 	}
 
@@ -127,14 +173,14 @@ func filterAddObject(v interface{}) bool {
 	if err := json.Unmarshal(v.([]byte), &a); err != nil {
 		return false
 	}
-	if a.Cmd == common.AddObjectCmdConst {
+	if a.Cmd == cm.AddObjectCmdConst {
 		return true
 	}
 	return false
 }
 
 func getNetworkProperties(d *contract.Device) (contract.ProtocolProperties, bool) {
-	pp, ok := d.Protocols[common.ProtocolNameConst]
+	pp, ok := d.Protocols[common.GeneralProtocolNameConst]
 	return pp, ok
 }
 
@@ -160,18 +206,18 @@ func (zb *Zigbee) DeleteObject(name string, protocols map[string]contract.Protoc
 	// loai Group khong can xoa, vi thong tin can xoa la groupAddress
 	// se duoc xoa trong DeleteObjectCallback
 	if cache.Cache().GetType(name) == common.DeviceTypeConst {
-		pp, ok := protocols[common.ProtocolNameConst]
+		pp, ok := protocols[common.GeneralProtocolNameConst]
 		if !ok {
-			return fmt.Errorf("Loi khong co thong tin Protocols.%s", common.ProtocolNameConst)
+			return fmt.Errorf("Loi khong co thong tin Protocols.%s", common.GeneralProtocolNameConst)
 		}
-		mac, _ := pp[common.MACPropertyConst]
+		mac, _ := pp[cm.MACProperty]
 		if mac == "" {
 			return fmt.Errorf("Loi khong co thong tin MAC cua thiet bi")
 		}
 
 		devPacket := models.DevicePacket{
 			Header: models.Header{
-				Cmd: common.DeleteObjectCmdConst,
+				Cmd: cm.DeleteObjectCmdConst,
 			},
 			NetDevice: netID,
 			MAC:       mac,
@@ -191,7 +237,7 @@ func (zb *Zigbee) DeleteObject(name string, protocols map[string]contract.Protoc
 		if err != nil {
 			return err
 		}
-		if r.StatusCode != uint8(common.Success) {
+		if r.StatusCode != uint8(cm.Success) {
 			return fmt.Errorf(r.StatusMessage)
 		}
 
@@ -207,7 +253,7 @@ func filterDistributionEvent(v interface{}) bool {
 	if err := json.Unmarshal(v.([]byte), &a); err != nil {
 		return false
 	}
-	if a.Cmd == common.ReportConst {
+	if a.Cmd == cm.ReportConst {
 		return true
 	}
 	return false
@@ -235,7 +281,7 @@ func (zb *Zigbee) distributionEventRoutine() {
 }
 
 func (zb *Zigbee) sendRequestWithResponse(rawRequest []byte, responseFilter func(v interface{}) bool) (rep interface{}, err error) {
-	err = zb.tc.Sender(rawRequest, common.SendRequestTimeoutConst)
+	err = zb.tc.Sender(rawRequest, requestTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +289,7 @@ func (zb *Zigbee) sendRequestWithResponse(rawRequest []byte, responseFilter func
 	reper := zb.tc.Listen(responseFilter)
 	defer zb.tc.CancelListen(reper)
 
-	timeOut := time.After(time.Duration(common.ReceiverResponseTimeoutConst) * time.Millisecond)
+	timeOut := time.After(time.Duration(responseTimeout) * time.Millisecond)
 	select {
 	case <-timeOut:
 		err = fmt.Errorf("Loi: Timeout")
@@ -253,7 +299,7 @@ func (zb *Zigbee) sendRequestWithResponse(rawRequest []byte, responseFilter func
 }
 
 func (zb *Zigbee) sendRequestWithoutResponse(rawRequest []byte) error {
-	err := zb.tc.Sender(rawRequest, common.SendRequestTimeoutConst)
+	err := zb.tc.Sender(rawRequest, requestTimeout)
 	return err
 }
 
@@ -306,7 +352,7 @@ func (zb *Zigbee) filterCommand(devName string) func(v interface{}) bool {
 		if err := json.Unmarshal(v.([]byte), &a); err != nil {
 			return false
 		}
-		if a.Cmd != common.CommandCmdConst {
+		if a.Cmd != cm.CommandCmdConst {
 			return false
 		}
 
@@ -357,7 +403,7 @@ func (zb *Zigbee) ReadCommands(name string, reqs []*sdkModel.CommandRequest) ([]
 
 	rq := models.CommandPacket{
 		Header: models.Header{
-			Cmd: common.CommandCmdConst,
+			Cmd: cm.CommandCmdConst,
 		},
 		NetEvent: *netEvent,
 	}
@@ -366,27 +412,50 @@ func (zb *Zigbee) ReadCommands(name string, reqs []*sdkModel.CommandRequest) ([]
 		return nil, err
 	}
 
-	filter := zb.filterCommand(name)
-	rep, err := zb.sendRequestWithResponse(rawRequest, filter)
-	if err != nil {
-		return nil, err
+	t := cache.Cache().GetType(name)
+	switch t {
+	case common.GroupTypeConst:
+		filter := zb.filterCommand(name)
+		rep, err := zb.sendRequestWithResponse(rawRequest, filter)
+		if err != nil {
+			return nil, err
+		}
+
+		r := models.CommandPacket{}
+		err = json.Unmarshal(rep.([]byte), &r)
+		if err != nil {
+			return nil, err
+		}
+		if r.StatusCode != uint8(cm.Success) {
+			return nil, fmt.Errorf(r.StatusMessage)
+		}
+	case common.DeviceTypeConst:
+		filter := zb.filterCommand(name)
+		rep, err := zb.sendRequestWithResponse(rawRequest, filter)
+		if err != nil {
+			return nil, err
+		}
+
+		r := models.CommandPacket{}
+		err = json.Unmarshal(rep.([]byte), &r)
+		if err != nil {
+			return nil, err
+		}
+		if r.StatusCode != uint8(cm.Success) {
+			return nil, fmt.Errorf(r.StatusMessage)
+		}
+
+		async, err := r.NetEvent.ToEdgeEvent()
+		if err != nil {
+			return nil, err
+		}
+
+		return async.CommandValues, nil
+	default:
+		return nil, fmt.Errorf("Khong ho tro doi tuong khong phai loai Device hoac Group")
 	}
 
-	r := models.CommandPacket{}
-	err = json.Unmarshal(rep.([]byte), &r)
-	if err != nil {
-		return nil, err
-	}
-	if r.StatusCode != uint8(common.Success) {
-		return nil, fmt.Errorf(r.StatusMessage)
-	}
-
-	async, err := r.NetEvent.ToEdgeEvent()
-	if err != nil {
-		return nil, err
-	}
-
-	return async.CommandValues, nil
+	return nil, nil
 }
 
 // WriteCommands
@@ -401,7 +470,7 @@ func (zb *Zigbee) WriteCommands(name string, reqs []*sdkModel.CommandRequest, pa
 
 	rq := models.CommandPacket{
 		Header: models.Header{
-			Cmd: common.CommandCmdConst,
+			Cmd: cm.CommandCmdConst,
 		},
 		NetEvent: *netEvent,
 	}
@@ -421,7 +490,7 @@ func (zb *Zigbee) WriteCommands(name string, reqs []*sdkModel.CommandRequest, pa
 	if err != nil {
 		return err
 	}
-	if r.StatusCode != uint8(common.Success) {
+	if r.StatusCode != uint8(cm.Success) {
 		return fmt.Errorf(r.StatusMessage)
 	}
 
