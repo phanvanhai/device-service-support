@@ -241,20 +241,21 @@ func (zc *zigbeeCache) DeleteDeviceCache(name string) {
 }
 
 func (zc *zigbeeCache) GenerateNetGroupID() (string, error) {
+	// Don't use group adrress = 0
 	var addr int
 	l := len(zc.groupAddress)
-	if l >= math.MaxUint16 {
+	if l >= (math.MaxUint16 - 1) {
 		return "", fmt.Errorf("Loi: Da su dung het so luong nhom cho phep")
 	} else if l == 0 {
-		addr = 0
+		addr = 1
 	} else {
 		sort.Ints(zc.groupAddress)
 		if zc.groupAddress[l-1] < math.MaxUint16 {
 			addr = zc.groupAddress[l-1] + 1
 		} else {
 			for i, v := range zc.groupAddress {
-				if i != v {
-					addr = i
+				if (i + 1) != v {
+					addr = i + 1
 				}
 			}
 		}
