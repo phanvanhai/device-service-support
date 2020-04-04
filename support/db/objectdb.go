@@ -5,8 +5,8 @@ import (
 
 	"github.com/phanvanhai/device-service-support/support/common"
 
-	sdk "github.com/edgexfoundry/device-sdk-go"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
+	sdk "github.com/phanvanhai/device-sdk-go"
 )
 
 type Relation struct {

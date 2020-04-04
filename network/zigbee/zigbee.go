@@ -1,8 +1,12 @@
 package zigbee
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
+	"os/exec"
 	"reflect"
 	"strconv"
 	"time"
@@ -14,10 +18,10 @@ import (
 
 	"github.com/phanvanhai/device-service-support/network/zigbee/models"
 
-	sdk "github.com/edgexfoundry/device-sdk-go"
-	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	contract "github.com/edgexfoundry/go-mod-core-contracts/models"
+	sdk "github.com/phanvanhai/device-sdk-go"
+	sdkModel "github.com/phanvanhai/device-sdk-go/pkg/models"
 	"github.com/phanvanhai/device-service-support/support/pubsub"
 	"github.com/phanvanhai/device-service-support/transceiver"
 )
@@ -308,6 +312,18 @@ func (zb *Zigbee) UpdateFirmware(deviceName string, file interface{}) error {
 	zb.mutex.Lock()
 	defer zb.mutex.Unlock()
 
+	cmd := exec.Command("./commander/commander", "device info")
+	var out bytes.Buffer
+	multi := io.MultiWriter(os.Stdout, &out)
+	cmd.Stdout = multi
+	cmd.Stderr = multi
+
+	if err := cmd.Run(); err != nil {
+		zb.logger.Error(err.Error())
+		return err
+	}
+
+	zb.logger.Info(out.String())
 	return nil
 }
 

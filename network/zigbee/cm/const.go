@@ -41,5 +41,5 @@ const (
 	RequestTimeoutDefault    = int64(30000) // milisecond
 	ResponseTimoutDefault    = int64(30000) // milisecond
 	RequestTimeoutConfigName = "Network_RequestTimeout"
-	ResponseTimoutConfigName = "Network_ResponseTimout"
+	ResponseTimoutConfigName = "Network_ResponseTimeout"
 )
