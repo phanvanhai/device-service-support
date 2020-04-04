@@ -19,15 +19,17 @@ type RelationContent struct {
 	Content string `json:"Content, omitempty"`
 }
 type ObjectInfo struct {
-	Name      string
-	Connected bool
-	Type      string
+	Name        string
+	Connected   bool
+	Type        string
+	ProfileName string
 }
 
 type ObjectDB interface {
 	UpdateObject(object *models.Device)
 	DeleteDevice(name string)
 
+	GetProfileName(name string) string
 	GetObjectType(name string) string
 	GetConnectedStatus(name string) bool
 	SetConnectedStatus(name string, status bool)
@@ -108,9 +110,10 @@ func (db *database) UpdateObject(object *models.Device) {
 	}
 
 	db.objectIDName[id] = ObjectInfo{
-		Name:      name,
-		Connected: connected,
-		Type:      objectType,
+		Name:        name,
+		Connected:   connected,
+		Type:        objectType,
+		ProfileName: object.Profile.Name,
 	}
 
 	db.objectNameID[name] = id
@@ -143,6 +146,19 @@ func (db *database) DeleteDevice(name string) {
 	delete(db.objectIDName, id)
 	delete(db.objectNameID, name)
 	db.deleteAllRelationByID(id)
+}
+
+func (db *database) GetProfileName(name string) string {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	id, existID := db.objectNameID[name]
+	if !existID {
+		return ""
+	}
+
+	info, _ := db.objectIDName[id]
+	return info.ProfileName
 }
 
 func (db *database) GetObjectType(name string) string {
