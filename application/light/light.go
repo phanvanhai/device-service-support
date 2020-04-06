@@ -52,10 +52,12 @@ func (l *Light) Initialize(dev *models.Device) error {
 }
 
 func (l *Light) Provision(dev *models.Device) (continueFlag bool, err error) {
+	l.lc.Debug("tien trinh cap phep")
 	provision := l.nw.CheckExist(dev.Name)
 	opstate := dev.OperatingState
 
 	if (provision == false && opstate == models.Disabled) || (provision == true && opstate == models.Enabled) {
+		l.lc.Debug("thoat tien trinh cap phep vi: provision=", provision, "& opstate=", opstate)
 		return true, nil
 	}
 
@@ -69,6 +71,7 @@ func (l *Light) Provision(dev *models.Device) (continueFlag bool, err error) {
 			return false, sv.UpdateDevice(*dev)
 		}
 		if newdev != nil {
+			l.lc.Debug("cap nhap lai thong tin device sau khi da cap phep")
 			return false, sv.UpdateDevice(*newdev)
 		}
 	}
@@ -77,10 +80,12 @@ func (l *Light) Provision(dev *models.Device) (continueFlag bool, err error) {
 }
 
 func (l *Light) Connect(dev *models.Device) (continueFlag bool, err error) {
+	l.lc.Debug("tien trinh ket noi thiet bi")
 	opstate := dev.OperatingState
 	connected := db.DB().GetConnectedStatus(dev.Name)
 
 	if (connected == false && opstate == models.Disabled) || (connected == true && opstate == models.Enabled) {
+		l.lc.Debug("thoat tien trinh ket noi thiet bi vi: connected=", connected, "& opstate=", opstate)
 		return true, nil
 	}
 
@@ -97,6 +102,7 @@ func (l *Light) Connect(dev *models.Device) (continueFlag bool, err error) {
 	db.DB().SetConnectedStatus(dev.Name, true)
 	if dev.OperatingState == models.Disabled {
 		dev.OperatingState = models.Enabled
+		l.lc.Debug("cap nhap lai OpState sau khi da ket noi thanh cong")
 		return false, sv.UpdateDevice(*dev)
 	}
 
@@ -109,7 +115,7 @@ func (l *Light) initDevice(devName string) error {
 }
 
 func (l *Light) AddDeviceCallback(deviceName string, protocols map[string]models.ProtocolProperties, adminState models.AdminState) error {
-	l.lc.Debug("a new Device is added in MetaData: %s", deviceName)
+	l.lc.Debug("a new Device is added in MetaData:", deviceName)
 
 	sv := sdk.RunningService()
 	dev, err := sv.GetDeviceByName(deviceName)
@@ -129,7 +135,7 @@ func (l *Light) AddDeviceCallback(deviceName string, protocols map[string]models
 }
 
 func (l *Light) UpdateDeviceCallback(deviceName string, protocols map[string]models.ProtocolProperties, adminState models.AdminState) error {
-	l.lc.Debug("a Device is updated in MetaData: %s", deviceName)
+	l.lc.Debug("a Device is updated in MetaData:", deviceName)
 
 	sv := sdk.RunningService()
 	dev, err := sv.GetDeviceByName(deviceName)
@@ -149,7 +155,7 @@ func (l *Light) UpdateDeviceCallback(deviceName string, protocols map[string]mod
 }
 
 func (l *Light) RemoveDeviceCallback(deviceName string, protocols map[string]models.ProtocolProperties) error {
-	l.lc.Debug("a Device is deleted in MetaData: %s", deviceName)
+	l.lc.Debug("a Device is deleted in MetaData:", deviceName)
 
 	err := l.nw.DeleteObject(deviceName, protocols)
 
