@@ -13,7 +13,7 @@ import (
 type NetReading struct {
 	NetOrigin    int64              `json:"o,omitempty"` // When the reading was created
 	NetResource  string             `json:"r,omitempty"` // = AttributeID(2B) + ClusterID(2B) + ProfileID(2B)
-	NetValueType sdkModel.ValueType `json:"t,omitempty"`
+	NetValueType sdkModel.ValueType `json:"t"`
 	NetValue     string             `json:"v,omitempty"` // interface{} --> base64 --> string
 	isValidated  bool               // internal member used for validation check
 }

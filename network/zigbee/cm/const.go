@@ -1,8 +1,11 @@
 package cm
 
 const (
-	//CommandCmdConst :
-	CommandCmdConst = uint8(iota)
+	//GetCommandCmdConst :
+	GetCommandCmdConst = uint8(iota)
+
+	//PutCommandCmdConst :
+	PutCommandCmdConst
 
 	//PushEventCmdConst :
 	ReportConst

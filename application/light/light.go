@@ -55,6 +55,7 @@ func (l *Light) Provision(dev *models.Device) (continueFlag bool, err error) {
 	l.lc.Debug("tien trinh cap phep")
 	provision := l.nw.CheckExist(dev.Name)
 	opstate := dev.OperatingState
+	l.lc.Debug("provison=", provision)
 
 	if (provision == false && opstate == models.Disabled) || (provision == true && opstate == models.Enabled) {
 		l.lc.Debug("thoat tien trinh cap phep vi: provision=", provision, "& opstate=", opstate)
@@ -74,6 +75,7 @@ func (l *Light) Provision(dev *models.Device) (continueFlag bool, err error) {
 			l.lc.Debug("cap nhap lai thong tin device sau khi da cap phep")
 			return false, sv.UpdateDevice(*newdev)
 		}
+		l.lc.Debug("newdev after provision = nil")
 	}
 
 	return true, nil
@@ -92,6 +94,7 @@ func (l *Light) Connect(dev *models.Device) (continueFlag bool, err error) {
 	sv := sdk.RunningService()
 	err = l.initDevice(dev.Name)
 	if err != nil {
+		l.lc.Error(err.Error())
 		db.DB().SetConnectedStatus(dev.Name, false)
 		if dev.OperatingState == models.Enabled {
 			dev.OperatingState = models.Disabled
@@ -122,8 +125,6 @@ func (l *Light) AddDeviceCallback(deviceName string, protocols map[string]models
 	if err != nil {
 		return err
 	}
-	l.nw.UpdateObjectCallback(&dev)
-	db.DB().UpdateObject(&dev)
 
 	isContinue, err := l.Provision(&dev)
 	if isContinue == false {
@@ -142,8 +143,6 @@ func (l *Light) UpdateDeviceCallback(deviceName string, protocols map[string]mod
 	if err != nil {
 		return err
 	}
-	l.nw.UpdateObjectCallback(&dev)
-	db.DB().UpdateObject(&dev)
 
 	isContinue, err := l.Provision(&dev)
 	if isContinue == false {
@@ -158,9 +157,6 @@ func (l *Light) RemoveDeviceCallback(deviceName string, protocols map[string]mod
 	l.lc.Debug("a Device is deleted in MetaData:", deviceName)
 
 	err := l.nw.DeleteObject(deviceName, protocols)
-
-	l.nw.DeleteObjectCallback(deviceName)
-	db.DB().DeleteDevice(deviceName)
 	return err
 }
 

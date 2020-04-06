@@ -104,7 +104,7 @@ func (zb *Zigbee) AddObject(newObject *contract.Device) (*contract.Device, error
 	defer zb.mutex.Unlock()
 
 	// neu Object da co trong Cache (da duoc cap phep) --> thoat
-	if _, err := cache.Cache().NetIDByDeviceName(newObject.Name); err != nil {
+	if _, err := cache.Cache().NetIDByDeviceName(newObject.Name); err == nil {
 		return nil, nil
 	}
 
@@ -357,7 +357,7 @@ func (zb *Zigbee) NetIDByDeviceName(name string) string {
 	return id
 }
 
-func (zb *Zigbee) filterCommand(devName string) func(v interface{}) bool {
+func (zb *Zigbee) filterCommand(devName string, cmd uint8) func(v interface{}) bool {
 	return func(v interface{}) bool {
 		type Alias struct {
 			NetDevice string `json:"dev"`
@@ -368,7 +368,7 @@ func (zb *Zigbee) filterCommand(devName string) func(v interface{}) bool {
 		if err := json.Unmarshal(v.([]byte), &a); err != nil {
 			return false
 		}
-		if a.Cmd != cm.CommandCmdConst {
+		if a.Cmd != cmd {
 			return false
 		}
 
@@ -419,7 +419,7 @@ func (zb *Zigbee) ReadCommands(name string, reqs []*sdkModel.CommandRequest) ([]
 
 	rq := models.CommandPacket{
 		Header: models.Header{
-			Cmd: cm.CommandCmdConst,
+			Cmd: cm.GetCommandCmdConst,
 		},
 		NetEvent: *netEvent,
 	}
@@ -431,7 +431,7 @@ func (zb *Zigbee) ReadCommands(name string, reqs []*sdkModel.CommandRequest) ([]
 	t := cache.Cache().GetType(name)
 	switch t {
 	case common.GroupTypeConst:
-		filter := zb.filterCommand(name)
+		filter := zb.filterCommand(name, cm.GetCommandCmdConst)
 		rep, err := zb.sendRequestWithResponse(rawRequest, filter)
 		if err != nil {
 			return nil, err
@@ -446,7 +446,7 @@ func (zb *Zigbee) ReadCommands(name string, reqs []*sdkModel.CommandRequest) ([]
 			return nil, fmt.Errorf(r.StatusMessage)
 		}
 	case common.DeviceTypeConst:
-		filter := zb.filterCommand(name)
+		filter := zb.filterCommand(name, cm.GetCommandCmdConst)
 		rep, err := zb.sendRequestWithResponse(rawRequest, filter)
 		if err != nil {
 			return nil, err
@@ -486,7 +486,7 @@ func (zb *Zigbee) WriteCommands(name string, reqs []*sdkModel.CommandRequest, pa
 
 	rq := models.CommandPacket{
 		Header: models.Header{
-			Cmd: cm.CommandCmdConst,
+			Cmd: cm.PutCommandCmdConst,
 		},
 		NetEvent: *netEvent,
 	}
@@ -495,7 +495,7 @@ func (zb *Zigbee) WriteCommands(name string, reqs []*sdkModel.CommandRequest, pa
 		return err
 	}
 
-	filter := zb.filterCommand(name)
+	filter := zb.filterCommand(name, cm.PutCommandCmdConst)
 	rep, err := zb.sendRequestWithResponse(rawRequest, filter)
 	if err != nil {
 		return err
