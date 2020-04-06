@@ -23,6 +23,7 @@ type ObjectInfo struct {
 	Connected   bool
 	Type        string
 	ProfileName string
+	Protocols   map[string]models.ProtocolProperties
 }
 
 type ObjectDB interface {
@@ -33,6 +34,12 @@ type ObjectDB interface {
 	GetObjectType(name string) string
 	GetConnectedStatus(name string) bool
 	SetConnectedStatus(name string, status bool)
+	GetProtocols(name string) map[string]models.ProtocolProperties
+	UpdateProtocols(name string, protocols map[string]models.ProtocolProperties)
+	GetProperty(name string, key string) models.ProtocolProperties
+	UpdateProperty(name string, key string, value models.ProtocolProperties)
+	DeleteProperty(name string, key string)
+
 	IDToName(id string) string
 	NameToID(name string) string
 	GroupDotElement(name string) []RelationContent
@@ -100,13 +107,17 @@ func (db *database) UpdateObject(object *models.Device) {
 	name := object.Name
 	connected := false
 
+	var protocols map[string]models.ProtocolProperties
 	oldInfo, ok := db.objectIDName[id]
 	if ok {
 		connected = oldInfo.Connected
 		oldName := oldInfo.Name
+		protocols = oldInfo.Protocols
 		if oldName != name {
 			delete(db.objectNameID, oldName)
 		}
+	} else {
+		protocols = make(map[string]models.ProtocolProperties)
 	}
 
 	db.objectIDName[id] = ObjectInfo{
@@ -114,6 +125,7 @@ func (db *database) UpdateObject(object *models.Device) {
 		Connected:   connected,
 		Type:        objectType,
 		ProfileName: object.Profile.Name,
+		Protocols:   protocols,
 	}
 
 	db.objectNameID[name] = id
@@ -143,7 +155,13 @@ func (db *database) DeleteDevice(name string) {
 		return
 	}
 
+	info := db.objectIDName[id]
+	p := info.Protocols
+	for k := range p {
+		delete(p, k)
+	}
 	delete(db.objectIDName, id)
+
 	delete(db.objectNameID, name)
 	db.deleteAllRelationByID(id)
 }
@@ -193,6 +211,77 @@ func (db *database) SetConnectedStatus(name string, status bool) {
 	info, _ := db.objectIDName[id]
 	info.Connected = status
 	db.objectIDName[id] = info
+}
+
+func (db *database) GetProtocols(name string) map[string]models.ProtocolProperties {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	id, existID := db.objectNameID[name]
+	if !existID {
+		return nil
+	}
+
+	info, _ := db.objectIDName[id]
+	return info.Protocols
+}
+
+func (db *database) UpdateProtocols(name string, protocols map[string]models.ProtocolProperties) {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	id, existID := db.objectNameID[name]
+	if !existID {
+		return
+	}
+
+	info, _ := db.objectIDName[id]
+	p := info.Protocols
+	for k := range p {
+		delete(p, k)
+	}
+	info.Protocols = protocols
+	db.objectIDName[id] = info
+}
+
+func (db *database) GetProperty(name string, key string) (models.ProtocolProperties, bool) {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	id, existID := db.objectNameID[name]
+	if !existID {
+		return nil, false
+	}
+
+	info, _ := db.objectIDName[id]
+	pp, ok := info.Protocols[key]
+	return pp, ok
+}
+
+func (db *database) UpdateProperty(name string, key string, value models.ProtocolProperties) {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	id, existID := db.objectNameID[name]
+	if !existID {
+		return
+	}
+
+	info, _ := db.objectIDName[id]
+	info.Protocols[key] = value
+}
+
+func (db *database) DeleteProperty(name string, key string) {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	id, existID := db.objectNameID[name]
+	if !existID {
+		return
+	}
+
+	info, _ := db.objectIDName[id]
+	delete(info.Protocols, key)
 }
 
 func (db *database) IDToName(id string) string {

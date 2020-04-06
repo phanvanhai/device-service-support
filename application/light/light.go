@@ -1,6 +1,8 @@
 package light
 
 import (
+	"fmt"
+
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
 	sdk "github.com/phanvanhai/device-sdk-go"
@@ -38,6 +40,17 @@ func (l *Light) EventCallback(async sdkModel.AsyncValues) error {
 	return nil
 }
 
+func (l *Light) Initialize(dev *models.Device) error {
+	isContinue, err := l.Provision(dev)
+	if isContinue == false {
+		return err
+	}
+
+	isContinue, err = l.Connect(dev)
+	// TODO: get config from device --> update db.DB().Protocols(dev) map[string]interface{}
+	return err
+}
+
 func (l *Light) Provision(dev *models.Device) (continueFlag bool, err error) {
 	provision := l.nw.CheckExist(dev.Name)
 	opstate := dev.OperatingState
@@ -51,6 +64,7 @@ func (l *Light) Provision(dev *models.Device) (continueFlag bool, err error) {
 		newdev, err := l.nw.AddObject(dev)
 		if err != nil {
 			l.lc.Error(err.Error())
+			db.DB().SetConnectedStatus(dev.Name, false)
 			dev.OperatingState = models.Disabled
 			return false, sv.UpdateDevice(*dev)
 		}
@@ -144,10 +158,58 @@ func (l *Light) RemoveDeviceCallback(deviceName string, protocols map[string]mod
 	return err
 }
 
-func (l *Light) HandleReadCommands(objectID string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest) ([]*sdkModel.CommandValue, error) {
-	return nil, nil
+func (l *Light) HandleReadCommands(deviceName string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest) ([]*sdkModel.CommandValue, error) {
+	provision := l.nw.CheckExist(deviceName)
+	if provision == false {
+		l.lc.Error("thiet bi chua duoc cap phep")
+		return nil, fmt.Errorf("thiet bi chua duoc cap phep")
+	}
+	connected := db.DB().GetConnectedStatus(deviceName)
+	if connected == false {
+		l.lc.Error("thiet bi chua duoc ket noi")
+		return nil, fmt.Errorf("thiet bi chua duoc ket noi")
+	}
+
+	res := make([]*sdkModel.CommandValue, 0, len(reqs))
+	for i, r := range reqs {
+		l.lc.Info(fmt.Sprintf("SimpleDriver.HandleReadCommands: protocols: %v, resource: %v, request: %v", protocols, reqs[i].DeviceResourceName, reqs[i]))
+
+		req := make([]*sdkModel.CommandRequest, 0, 1)
+		req = append(req, &r)
+
+		cmvl, err := l.nw.ReadCommands(deviceName, req)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, cmvl...)
+	}
+	return res, nil
 }
 
-func (l *Light) HandleWriteCommands(objectID string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest, params []*sdkModel.CommandValue) error {
+func (l *Light) HandleWriteCommands(deviceName string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest, params []*sdkModel.CommandValue) error {
+	provision := l.nw.CheckExist(deviceName)
+	if provision == false {
+		l.lc.Error("thiet bi chua duoc cap phep")
+		return fmt.Errorf("thiet bi chua duoc cap phep")
+	}
+	connected := db.DB().GetConnectedStatus(deviceName)
+	if connected == false {
+		l.lc.Error("thiet bi chua duoc ket noi")
+		return fmt.Errorf("thiet bi chua duoc ket noi")
+	}
+
+	for i, r := range params {
+		l.lc.Info(fmt.Sprintf("SimpleDriver.HandleWriteCommands: protocols: %v, resource: %v, parameters: %v", protocols, reqs[i].DeviceResourceName, params[i]))
+		param := make([]*sdkModel.CommandValue, 0, 1)
+		param = append(param, r)
+
+		req := make([]*sdkModel.CommandRequest, 0, 1)
+		req = append(req, &reqs[i])
+
+		err := l.nw.WriteCommands(deviceName, req, param)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }

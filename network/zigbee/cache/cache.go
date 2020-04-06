@@ -265,8 +265,9 @@ func (zc *zigbeeCache) GenerateNetGroupID() (string, error) {
 	defer zc.mutex.Unlock()
 
 	zc.groupAddress = append(zc.groupAddress, addr)
-	addr64 := int64(cm.PrefixHexValueNetGroupID<<16 | addr)
-	straddr := strconv.FormatInt(addr64, 16)
+	addr32 := int32(cm.PrefixHexValueNetGroupID<<16 | addr)
+	// straddr := strconv.FormatInt(addr32, 16)
+	straddr := fmt.Sprintf("%08X", addr32)
 	return straddr, nil
 }
 

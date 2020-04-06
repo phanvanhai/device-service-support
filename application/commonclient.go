@@ -20,15 +20,17 @@ type Application interface {
 	// Callback xu ly, lua chon co hay khong Push toi CoreData tuy theo ung dung
 	EventCallback(async sdkModel.AsyncValues) error
 
+	Initialize(dev *models.Device) error
+
 	AddDeviceCallback(deviceName string, protocols map[string]models.ProtocolProperties, adminState models.AdminState) error
 	UpdateDeviceCallback(deviceName string, protocols map[string]models.ProtocolProperties, adminState models.AdminState) error
 	RemoveDeviceCallback(deviceName string, protocols map[string]models.ProtocolProperties) error
 
 	// HandleReadCommands xu ly yeu cau GET Command
-	HandleReadCommands(objectID string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest) ([]*sdkModel.CommandValue, error)
+	HandleReadCommands(deviceName string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest) ([]*sdkModel.CommandValue, error)
 
 	// HandleWriteCommands xu ly yeu cau PUT Command
-	HandleWriteCommands(objectID string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest, params []*sdkModel.CommandValue) error
+	HandleWriteCommands(deviceName string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest, params []*sdkModel.CommandValue) error
 }
 
 // NewApplicationClient tao 1 doi tuong Application
