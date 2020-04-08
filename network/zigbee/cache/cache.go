@@ -11,7 +11,7 @@ import (
 	"github.com/phanvanhai/device-service-support/network/zigbee/cm"
 	"github.com/phanvanhai/device-service-support/support/common"
 
-	sdk "github.com/phanvanhai/device-sdk-go"
+	sdk "github.com/phanvanhai/device-sdk-go/pkg/service"
 )
 
 var zc *zigbeeCache

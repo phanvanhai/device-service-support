@@ -23,6 +23,7 @@ func initialize(lc logger.LoggingClient, asyncCh chan<- *sdkModel.AsyncValues, n
 	return l, nil
 }
 
+// implement me!
 func (l *Light) EventCallback(async sdkModel.AsyncValues) error {
 	sv := sdk.RunningService()
 	dev, err := sv.GetDeviceByName(async.DeviceName)
@@ -112,6 +113,7 @@ func (l *Light) Connect(dev *models.Device) (continueFlag bool, err error) {
 	return true, nil
 }
 
+// implement me!
 func (l *Light) initDevice(devName string) error {
 	// grs := db.DB().ElementDotGroups(devName)
 	return nil
@@ -160,6 +162,7 @@ func (l *Light) RemoveDeviceCallback(deviceName string, protocols map[string]mod
 	return err
 }
 
+// implement me!
 func (l *Light) HandleReadCommands(deviceName string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest) ([]*sdkModel.CommandValue, error) {
 	provision := l.nw.CheckExist(deviceName)
 	if provision == false {
@@ -188,6 +191,7 @@ func (l *Light) HandleReadCommands(deviceName string, protocols map[string]model
 	return res, nil
 }
 
+// implement me!
 func (l *Light) HandleWriteCommands(deviceName string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest, params []*sdkModel.CommandValue) error {
 	provision := l.nw.CheckExist(deviceName)
 	if provision == false {

@@ -7,23 +7,19 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/phanvanhai/device-service-support/application/light/cm"
-
 	nw "github.com/phanvanhai/device-service-support/network"
-	zigbeeCm "github.com/phanvanhai/device-service-support/network/zigbee/cm"
-	db "github.com/phanvanhai/device-service-support/support/db"
 )
 
 type EdgeGroup struct {
 	Group string
 }
 
-type NetGroup struct {
+type netGroup struct {
 	Address uint16
 }
 
-func groupNetToEdge(nw nw.Network, net NetGroup) EdgeGroup {
-	grInt := uint32(zigbeeCm.PrefixHexValueNetGroupID<<16) | uint32(net.Address)
+func groupNetToEdge(nw nw.Network, net netGroup, shifPrefix uint16) EdgeGroup {
+	grInt := uint32(shifPrefix<<16) | uint32(net.Address)
 	netID := fmt.Sprintf("%04X", grInt)
 	name := nw.DeviceNameByNetID(netID)
 
@@ -32,20 +28,20 @@ func groupNetToEdge(nw nw.Network, net NetGroup) EdgeGroup {
 	}
 }
 
-func groupEdgeToNet(nw nw.Network, edge EdgeGroup) NetGroup {
+func groupEdgeToNet(nw nw.Network, edge EdgeGroup) netGroup {
 	netID := nw.NetIDByDeviceName(edge.Group)
 	grInt64, _ := strconv.ParseUint(netID, 16, 32)
 	address := uint16(grInt64 & 0xFFFF)
-	return NetGroup{
+	return netGroup{
 		Address: address,
 	}
 }
 
 // input: ex 2 group: [0x1234, 0xABCD]
 // output: ex 2 group: base64([]byte{0x12, 0x34, 0xAB, 0xCD}), kich thuoc dung = size
-func netGroupToString(groups []NetGroup, size int) string {
+func netGroupToString(groups []netGroup, size int) string {
 	if len(groups) < size {
-		g := make([]NetGroup, size-len(groups))
+		g := make([]netGroup, size-len(groups))
 		groups = append(groups, g...)
 	}
 	if len(groups) > size {
@@ -61,7 +57,7 @@ func netGroupToString(groups []NetGroup, size int) string {
 
 // input: ex 2 group: base64([]byte{0x12, 0x34, 0xAB, 0xCD}), kich thuoc bieu dien phai dung = size
 // output: ex 2 group: "01001234", "0100ABCD"
-func stringToNetGroup(groups string, size int) ([]NetGroup, error) {
+func stringToNetGroup(groups string, size int) ([]netGroup, error) {
 	decoded, err := base64.StdEncoding.DecodeString(groups)
 	if err != nil {
 		return nil, err
@@ -74,12 +70,12 @@ func stringToNetGroup(groups string, size int) ([]NetGroup, error) {
 		return nil, err
 	}
 
-	result := make([]NetGroup, 0, size)
+	result := make([]netGroup, 0, size)
 	for i := 0; i < size; i++ {
 		if gr[i] == 0x0000 {
 			continue
 		}
-		ngr := NetGroup{
+		ngr := netGroup{
 			Address: gr[i],
 		}
 		result = append(result, ngr)
@@ -87,31 +83,26 @@ func stringToNetGroup(groups string, size int) ([]NetGroup, error) {
 	return result, nil
 }
 
-func GroupToNetValue(nw nw.Network, grInfo []db.RelationContent) string {
-	netGrs := make([]NetGroup, 0, len(grInfo))
-	for _, gr := range grInfo {
-		netGroup := groupEdgeToNet(nw, EdgeGroup{Group: gr.Parent})
+func GroupToNetValue(nw nw.Network, groups []EdgeGroup, size int) string {
+	netGrs := make([]netGroup, 0, len(groups))
+	for _, gr := range groups {
+		netGroup := groupEdgeToNet(nw, gr)
 		netGrs = append(netGrs, netGroup)
 	}
-	return netGroupToString(netGrs, cm.GroupLimit)
+	return netGroupToString(netGrs, size)
 }
 
-func NetValueToGroup(nw nw.Network, value string) ([]string, error) {
-	netGroups, err := stringToNetGroup(value, cm.GroupLimit)
+func NetValueToGroup(nw nw.Network, value string, size int, shifPrefix uint16) ([]EdgeGroup, error) {
+	netGroups, err := stringToNetGroup(value, size)
 	if err != nil {
 		return nil, err
 	}
 
 	edgeGrs := make([]EdgeGroup, 0, len(netGroups))
 	for _, ng := range netGroups {
-		eg := groupNetToEdge(nw, ng)
+		eg := groupNetToEdge(nw, ng, shifPrefix)
 		edgeGrs = append(edgeGrs, eg)
 	}
 
-	grs := make([]string, 0, len(edgeGrs))
-	for _, eg := range edgeGrs {
-		grs = append(grs, eg.Group)
-	}
-
-	return grs, nil
+	return edgeGrs, nil
 }

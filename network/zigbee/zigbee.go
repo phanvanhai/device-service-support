@@ -20,8 +20,8 @@ import (
 
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	contract "github.com/edgexfoundry/go-mod-core-contracts/models"
-	sdk "github.com/phanvanhai/device-sdk-go"
 	sdkModel "github.com/phanvanhai/device-sdk-go/pkg/models"
+	sdk "github.com/phanvanhai/device-sdk-go/pkg/service"
 	"github.com/phanvanhai/device-service-support/support/pubsub"
 	"github.com/phanvanhai/device-service-support/transceiver"
 )
