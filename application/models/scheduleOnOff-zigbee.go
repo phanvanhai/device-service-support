@@ -25,7 +25,7 @@ type netOnOffSchedule struct {
 	Value        bool
 }
 
-func convertEdgeToNetOnOffSchedule(nw nw.Network, net netOnOffSchedule, ownerName string) EdgeOnOffSchedule {
+func convertNetToEdgeOnOffSchedule(nw nw.Network, net netOnOffSchedule, ownerName string) EdgeOnOffSchedule {
 	shifPrefix := zigbeeConstants.PrefixHexValueNetGroupID
 	result := EdgeOnOffSchedule{
 		Time:  net.Time,
@@ -41,7 +41,7 @@ func convertEdgeToNetOnOffSchedule(nw nw.Network, net netOnOffSchedule, ownerNam
 	return result
 }
 
-func convertNetToEdgeOnOffSchedule(nw nw.Network, edge EdgeOnOffSchedule, ownerName string) netOnOffSchedule {
+func convertEdgeToNetOnOffSchedule(nw nw.Network, edge EdgeOnOffSchedule, ownerName string) netOnOffSchedule {
 	result := netOnOffSchedule{
 		Time:  edge.Time,
 		Value: edge.Value,

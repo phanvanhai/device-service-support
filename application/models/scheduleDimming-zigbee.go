@@ -25,7 +25,7 @@ type netDimmingSchedule struct {
 	Value        uint16
 }
 
-func convertEdgeToNetDimmingSchedule(nw nw.Network, net netDimmingSchedule, ownerName string) EdgeDimmingSchedule {
+func convertNetToEdgeDimmingSchedule(nw nw.Network, net netDimmingSchedule, ownerName string) EdgeDimmingSchedule {
 	shifPrefix := zigbeeConstants.PrefixHexValueNetGroupID
 	result := EdgeDimmingSchedule{
 		Time:  net.Time,
@@ -41,7 +41,7 @@ func convertEdgeToNetDimmingSchedule(nw nw.Network, net netDimmingSchedule, owne
 	return result
 }
 
-func convertNetToEdgeDimmingSchedule(nw nw.Network, edge EdgeDimmingSchedule, ownerName string) netDimmingSchedule {
+func convertEdgeToNetDimmingSchedule(nw nw.Network, edge EdgeDimmingSchedule, ownerName string) netDimmingSchedule {
 	result := netDimmingSchedule{
 		Time:  edge.Time,
 		Value: edge.Value,

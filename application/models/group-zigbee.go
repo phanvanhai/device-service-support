@@ -12,7 +12,7 @@ import (
 )
 
 func convertEdgeToNetGroup(nw nw.Network, name string) uint16 {
-	netID := nw.NetIDByDeviceName(edge.Group)
+	netID := nw.NetIDByDeviceName(name)
 	grInt64, _ := strconv.ParseUint(netID, 16, 32)
 	address := uint16(grInt64 & 0xFFFF)
 	return address
