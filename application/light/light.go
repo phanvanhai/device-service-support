@@ -1,13 +1,17 @@
 package light
 
 import (
+	"encoding/json"
 	"fmt"
+
+	"github.com/phanvanhai/device-service-support/application/light/cm"
 
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
 	sdkModel "github.com/phanvanhai/device-sdk-go/pkg/models"
 	sdk "github.com/phanvanhai/device-sdk-go/pkg/service"
 
+	appModels "github.com/phanvanhai/device-service-support/application/models"
 	nw "github.com/phanvanhai/device-service-support/network"
 	db "github.com/phanvanhai/device-service-support/support/db"
 	tc "github.com/phanvanhai/device-service-support/transceiver"
@@ -68,9 +72,8 @@ func (l *Light) Provision(dev *models.Device) (continueFlag bool, err error) {
 		newdev, err := l.nw.AddObject(dev)
 		if err != nil {
 			l.lc.Error(err.Error())
-			db.DB().SetConnectedStatus(dev.Name, false)
-			dev.OperatingState = models.Disabled
-			return false, sv.UpdateDevice(*dev)
+			continueFlag, err = l.updateOpStateAndConnectdStatus(dev.Name, false)
+			return
 		}
 		if newdev != nil {
 			l.lc.Debug("cap nhap lai thong tin device sau khi da cap phep")
@@ -80,6 +83,31 @@ func (l *Light) Provision(dev *models.Device) (continueFlag bool, err error) {
 	}
 
 	return true, nil
+}
+
+func (l *Light) updateOpStateAndConnectdStatus(devName string, status bool) (bool, error) {
+	sv := sdk.RunningService()
+	dev, err := sv.GetDeviceByName(devName)
+	if err != nil {
+		return false, err
+	}
+	var notUpdate = true
+	if status == false {
+		db.DB().SetConnectedStatus(devName, false)
+		if dev.OperatingState == models.Enabled {
+			dev.OperatingState = models.Disabled
+			l.lc.Debug("cap nhap lai OpState = Disable")
+			return false, sv.UpdateDevice(*dev)
+		}
+		return false, nil
+	}
+	db.DB().SetConnectedStatus(dev.Name, true)
+	if dev.OperatingState == models.Disabled {
+		dev.OperatingState = models.Enabled
+		l.lc.Debug("cap nhap lai OpState = Enabled")
+		return false, sv.UpdateDevice(*dev)
+	}
+	return notUpdate, nil
 }
 
 func (l *Light) Connect(dev *models.Device) (continueFlag bool, err error) {
@@ -92,25 +120,15 @@ func (l *Light) Connect(dev *models.Device) (continueFlag bool, err error) {
 		return true, nil
 	}
 
-	sv := sdk.RunningService()
 	err = l.initDevice(dev.Name)
 	if err != nil {
 		l.lc.Error(err.Error())
-		db.DB().SetConnectedStatus(dev.Name, false)
-		if dev.OperatingState == models.Enabled {
-			dev.OperatingState = models.Disabled
-			return false, sv.UpdateDevice(*dev)
-		}
-		return true, err
+		continueFlag, err = l.updateOpStateAndConnectdStatus(dev.Name, false)
+		return
 	}
-	db.DB().SetConnectedStatus(dev.Name, true)
-	if dev.OperatingState == models.Disabled {
-		dev.OperatingState = models.Enabled
-		l.lc.Debug("cap nhap lai OpState sau khi da ket noi thanh cong")
-		return false, sv.UpdateDevice(*dev)
-	}
+	continueFlag, err = l.updateOpStateAndConnectdStatus(dev.Name, true)
 
-	return true, nil
+	return
 }
 
 // implement me!
@@ -178,15 +196,56 @@ func (l *Light) HandleReadCommands(deviceName string, protocols map[string]model
 	res := make([]*sdkModel.CommandValue, 0, len(reqs))
 	for i, r := range reqs {
 		l.lc.Info(fmt.Sprintf("SimpleDriver.HandleReadCommands: protocols: %v, resource: %v, request: %v", protocols, reqs[i].DeviceResourceName, reqs[i]))
-
 		req := make([]*sdkModel.CommandRequest, 0, 1)
 		req = append(req, &r)
 
 		cmvl, err := l.nw.ReadCommands(deviceName, req)
 		if err != nil {
+			l.lc.Error(err.Error)
+			l.updateOpStateAndConnectdStatus(deviceName, false)
 			return nil, err
 		}
-		res = append(res, cmvl...)
+
+		switch r.DeviceResourceName {
+		case OnOffScheduleDr:
+			repCmvlValue, _ := cmvl[0].StringValue()
+			repConverted, err := appModels.NetValueToOnOffSchedule(l.nw, repCmvlValue, cm.DimmingScheduleLimit, deviceName)
+			if err != nil {
+				return nil, err
+			}
+			repStr, err := json.Marshal(repConverted)
+			if err != nil {
+				return nil, err
+			}
+			newCmvl := sdkModel.NewStringValue(r.DeviceResourceName, 0, string(repStr))
+			res = append(res, newCmvl)
+		case DimmingScheduleDr:
+			repCmvlValue, _ := cmvl[0].StringValue()
+			repConverted, err := appModels.NetValueToDimmingSchedule(l.nw, repCmvlValue, cm.DimmingScheduleLimit, deviceName)
+			if err != nil {
+				return nil, err
+			}
+			repStr, err := json.Marshal(repConverted)
+			if err != nil {
+				return nil, err
+			}
+			newCmvl := sdkModel.NewStringValue(r.DeviceResourceName, 0, string(repStr))
+			res = append(res, newCmvl)
+		case GroupDr:
+			repCmvlValue, _ := cmvl[0].StringValue()
+			repConverted, err := appModels.NetValueToGroup(l.nw, repCmvlValue, cm.GroupLimit)
+			if err != nil {
+				return nil, err
+			}
+			repStr, err := json.Marshal(repConverted)
+			if err != nil {
+				return nil, err
+			}
+			newCmvl := sdkModel.NewStringValue(r.DeviceResourceName, 0, string(repStr))
+			res = append(res, newCmvl)
+		default:
+			res = append(res, cmvl...)
+		}
 	}
 	return res, nil
 }
@@ -206,14 +265,49 @@ func (l *Light) HandleWriteCommands(deviceName string, protocols map[string]mode
 
 	for i, r := range params {
 		l.lc.Info(fmt.Sprintf("SimpleDriver.HandleWriteCommands: protocols: %v, resource: %v, parameters: %v", protocols, reqs[i].DeviceResourceName, params[i]))
+		var cmvlConverted *sdkModel.CommandValue
+		switch r.DeviceResourceName {
+		case ScheduleOnOffDr:
+			reqValue, _ := r.StringValue()
+			var schedules []appModels.EdgeOnOffSchedule
+			err := json.Unmarshal([]byte(reqValue), &schedules)
+			if err != nil {
+				return err
+			}
+			reqConverted := appModels.OnOffScheduleEdgeToNetValue(l.nw, schedules, cm.OnOffScheduleLimit)
+			cmvlConverted = sdkModel.NewStringValue(r.DeviceResourceName, 0, reqConverted)
+		case ScheduleDimmingDr:
+			reqValue, _ := r.StringValue()
+			var schedules []appModels.EdgeDimmingSchedule
+			err := json.Unmarshal([]byte(reqValue), &schedules)
+			if err != nil {
+				return err
+			}
+			reqConverted := appModels.DimmingScheduleToString(l.nw, schedules, cm.DimmingScheduleLimit)
+			cmvlConverted = sdkModel.NewStringValue(r.DeviceResourceName, 0, reqConverted)
+		case GroupDr:
+			reqValue, _ := r.StringValue()
+			var groups []string
+			err := json.Unmarshal([]byte(reqValue), &groups)
+			if err != nil {
+				return err
+			}
+			reqConverted := appModels.GroupToNetValue(l.nw, groups, cm.GroupLimit)
+			cmvlConverted = sdkModel.NewStringValue(r.DeviceResourceName, 0, reqConverted)
+		default:
+			cmvlConverted = r
+		}
+
 		param := make([]*sdkModel.CommandValue, 0, 1)
-		param = append(param, r)
+		param = append(param, cmvlConverted)
 
 		req := make([]*sdkModel.CommandRequest, 0, 1)
 		req = append(req, &reqs[i])
 
 		err := l.nw.WriteCommands(deviceName, req, param)
 		if err != nil {
+			l.lc.Error(err.Error)
+			l.updateOpStateAndConnectdStatus(deviceName, false)
 			return err
 		}
 	}

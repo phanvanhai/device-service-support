@@ -4,27 +4,30 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"strconv"
 
 	"github.com/phanvanhai/device-service-support/application/light/cm"
 	nw "github.com/phanvanhai/device-service-support/network"
+	zigbeeConstants "github.com/phanvanhai/device-service-support/network/zigbee/cm"
 )
 
-type EdgeScheduleDimming struct {
+type EdgeOnOffSchedule struct {
 	OwnerName string `json:"owner, omitempty"`
 	Time      uint32 `json:"time, omitempty"`
-	Value     uint16 `json:"value, omitempty"`
+	Value     bool   `json:"value, omitempty"`
 }
 
-type netScheduleDimming struct {
+type netOnOffSchedule struct {
 	OwnerAddress uint16
 	Time         uint32
-	Value        uint16
+	Value        bool
 }
 
-func scheduleDimmingNetToEdge(nw nw.Network, net netScheduleDimming, ownerName string, shifPrefix uint16) EdgeScheduleDimming {
-	result := EdgeScheduleDimming{
+func convertEdgeToNetOnOffSchedule(nw nw.Network, net netOnOffSchedule, ownerName string) EdgeOnOffSchedule {
+	shifPrefix := zigbeeConstants.PrefixHexValueNetGroupID
+	result := EdgeOnOffSchedule{
 		Time:  net.Time,
 		Value: net.Value,
 	}
@@ -38,8 +41,8 @@ func scheduleDimmingNetToEdge(nw nw.Network, net netScheduleDimming, ownerName s
 	return result
 }
 
-func scheduleDimmingEdgeToNet(nw nw.Network, edge EdgeScheduleDimming, ownerName string) netScheduleDimming {
-	result := netScheduleDimming{
+func convertNetToEdgeOnOffSchedule(nw nw.Network, edge EdgeOnOffSchedule, ownerName string) netOnOffSchedule {
+	result := netOnOffSchedule{
 		Time:  edge.Time,
 		Value: edge.Value,
 	}
@@ -55,9 +58,9 @@ func scheduleDimmingEdgeToNet(nw nw.Network, edge EdgeScheduleDimming, ownerName
 	return result
 }
 
-func netScheduleDimmingToString(schedules []netScheduleDimming, size int) string {
+func encodeNetOnOffSchedules(schedules []netOnOffSchedule, size int) string {
 	if len(schedules) < size {
-		s := make([]netScheduleDimming, size-len(schedules))
+		s := make([]netOnOffSchedule, size-len(schedules))
 		schedules = append(schedules, s...)
 	}
 	if len(schedules) > size {
@@ -70,20 +73,20 @@ func netScheduleDimmingToString(schedules []netScheduleDimming, size int) string
 }
 
 // kich thuoc bieu dien phai dung = size
-func stringToNetScheduleDimming(scheduleStr string, size int) ([]netScheduleDimming, error) {
+func decodeNetOnOffSchedules(scheduleStr string, size int) ([]netOnOffSchedule, error) {
 	decode, err := base64.StdEncoding.DecodeString(scheduleStr)
 	if err != nil {
 		return nil, err
 	}
 
-	sch := make([]netScheduleDimming, size)
+	sch := make([]netOnOffSchedule, size)
 	reader := bytes.NewBuffer(decode)
 	err = binary.Read(reader, binary.BigEndian, sch)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]netScheduleDimming, 0, size)
+	result := make([]netOnOffSchedule, 0, size)
 	for i := 0; i < size; i++ {
 		if cm.CheckScheduleTime(sch[i].Time) == false {
 			continue
@@ -93,24 +96,33 @@ func stringToNetScheduleDimming(scheduleStr string, size int) ([]netScheduleDimm
 	return result, nil
 }
 
-func ScheduleDimmingEdgeToNetValue(nw nw.Network, schedules []EdgeScheduleDimming, ownerName string, size int) string {
-	netSchs := make([]netScheduleDimming, 0, len(schedules))
+func OnOffScheduleEdgeToNetValue(nw nw.Network, schedules []EdgeOnOffSchedule, ownerName string, size int) string {
+	netSchs := make([]netOnOffSchedule, 0, len(schedules))
 	for _, sch := range schedules {
-		netSch := scheduleDimmingEdgeToNet(nw, sch, ownerName)
+		netSch := convertEdgeToNetOnOffSchedule(nw, sch, ownerName)
 		netSchs = append(netSchs, netSch)
 	}
-	return netScheduleDimmingToString(netSchs, size)
+	return encodeNetOnOffSchedules(netSchs, size)
 }
 
-func NetValueToScheduleDimming(nw nw.Network, value string, size int, ownerName string, shifPrefix uint16) ([]EdgeScheduleDimming, error) {
-	netSchs, err := stringToNetScheduleDimming(value, size)
+func NetValueToOnOffSchedule(nw nw.Network, value string, size int, ownerName string) ([]EdgeOnOffSchedule, error) {
+	netSchs, err := decodeNetOnOffSchedules(value, size)
 	if err != nil {
 		return nil, err
 	}
-	edgeSchs := make([]EdgeScheduleDimming, 0, len(netSchs))
+	edgeSchs := make([]EdgeOnOffSchedule, 0, len(netSchs))
 	for _, sch := range netSchs {
-		eg := scheduleDimmingNetToEdge(nw, sch, ownerName, shifPrefix)
+		eg := convertNetToEdgeOnOffSchedule(nw, sch, ownerName)
 		edgeSchs = append(edgeSchs, eg)
 	}
 	return edgeSchs, nil
+}
+
+// String returns a JSON encoded string representation of the model
+func OnOffScheduleToString(schedules []EdgeOnOffSchedule) string {
+	out, err := json.Marshal(schedules)
+	if err != nil {
+		return err.Error()
+	}
+	return string(out)
 }

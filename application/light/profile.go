@@ -3,8 +3,8 @@ package light
 const (
 	OnOffDr           = "Light-OnOff"
 	DimmingDr         = "Light-Dimming"
-	ScheduleOnOffDr   = "Light-ScheduleOnOff"
-	ScheduleDimmingDr = "Light-ScheduleDimming"
+	OnOffScheduleDr   = "Light-OnOffSchedule"
+	DimmingScheduleDr = "Light-DimmingSchedule"
 	MeasurePowerDr    = "Light-MeasurePower"
 	ReportTimeDr      = "Light-ReportTime"
 	RealtimeDr        = "Light-Realtime"
@@ -15,9 +15,9 @@ const (
 
 	OnOffCc           = "OnOff"
 	DimmingCc         = "Dimming"
-	ScheduleOnOffCc   = "ScheduleOnOff"
+	OnOffScheduleCc   = "OnOffSchedule"
 	MeasurePowerCc    = "MeasurePower"
-	ScheduleDimmingCc = "ScheduleDimming"
+	DimmingScheduleCc = "DimmingSchedule"
 	ReportTimeCc      = "ReportTime"
 	RealtimeCc        = "Realtime"
 	HistoricalEventCc = "HistoricalEvent"
