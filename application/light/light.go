@@ -5,8 +5,8 @@ import (
 
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
-	sdk "github.com/phanvanhai/device-sdk-go"
 	sdkModel "github.com/phanvanhai/device-sdk-go/pkg/models"
+	sdk "github.com/phanvanhai/device-sdk-go/pkg/service"
 
 	nw "github.com/phanvanhai/device-service-support/network"
 	db "github.com/phanvanhai/device-service-support/support/db"
