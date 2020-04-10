@@ -12,15 +12,16 @@ const (
 	GroupDr           = "Light-Group"
 	ScenarioDr        = "Light-Scenario"
 	PingDr            = "Light-Ping"
+)
 
-	OnOffCc           = "OnOff"
-	DimmingCc         = "Dimming"
-	OnOffScheduleCc   = "OnOffSchedule"
-	MeasurePowerCc    = "MeasurePower"
-	DimmingScheduleCc = "DimmingSchedule"
-	ReportTimeCc      = "ReportTime"
-	RealtimeCc        = "Realtime"
-	HistoricalEventCc = "HistoricalEvent"
-	GroupCc           = "Group"
-	ScenarioCc        = "Scenario"
+const (
+	GroupLimit           = 50
+	OnOffScheduleLimit   = 15
+	DimmingScheduleLimit = 15
+)
+
+const (
+	ScheduleProtocolName        = "Schedule"
+	OnOffSchedulePropertyName   = "OnOff"
+	DimmingSchedulePropertyName = "Dimming"
 )

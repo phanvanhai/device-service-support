@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/phanvanhai/device-service-support/application/light/cm"
 	nw "github.com/phanvanhai/device-service-support/network"
 	zigbeeConstants "github.com/phanvanhai/device-service-support/network/zigbee/cm"
 )
@@ -24,6 +23,10 @@ type netDimmingSchedule struct {
 	Time         uint32
 	Value        uint16
 }
+
+// Cloud <-> DS: '[{"owner":"dev1", "time":1234, "value":"1234"},{"owner":"dev1", "time":4321, "value":"5678"}]'
+// 			: nil = '[{"owner":"dev1", "time":FFFF}]'
+// Coord --> DS: base64('uint16uint32uint16uint16uint32uint16')
 
 func convertNetToEdgeDimmingSchedule(nw nw.Network, net netDimmingSchedule, ownerName string) EdgeDimmingSchedule {
 	shifPrefix := zigbeeConstants.PrefixHexValueNetGroupID
@@ -88,7 +91,7 @@ func decodeNetDimmingSchedules(scheduleStr string, size int) ([]netDimmingSchedu
 
 	result := make([]netDimmingSchedule, 0, size)
 	for i := 0; i < size; i++ {
-		if cm.CheckScheduleTime(sch[i].Time) == false {
+		if CheckScheduleTime(sch[i].Time) == false {
 			continue
 		}
 		result = append(result, sch[i])

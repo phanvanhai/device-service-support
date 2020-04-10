@@ -4,12 +4,18 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"strconv"
+
+	"github.com/phanvanhai/device-service-support/support/db"
 
 	nw "github.com/phanvanhai/device-service-support/network"
 	zigbeeConstants "github.com/phanvanhai/device-service-support/network/zigbee/cm"
 )
+
+// Cloud <-> DS: '[1234,4321]'
+// Coord --> DS: base64('uint16uint16')
 
 func convertEdgeToNetGroup(nw nw.Network, name string) uint16 {
 	netID := nw.NetIDByDeviceName(name)
@@ -91,11 +97,24 @@ func NetValueToGroup(nw nw.Network, value string, size int) ([]string, error) {
 	return edgeGrs, nil
 }
 
+func RelationGroupToNetValue(nw nw.Network, relations []db.RelationContent, size int) string {
+	groups := make([]string, 0, len(relations))
+	for _, relation := range relations {
+		groups = append(groups, relation.Parent)
+	}
+	return GroupToNetValue(nw, groups, size)
+}
+
 // String returns a JSON encoded string representation of the model
-// func GroupToString(event []EdgeGroup) string {
-// 	out, err := json.Marshal(event)
-// 	if err != nil {
-// 		return err.Error()
-// 	}
-// 	return string(out)
-// }
+func RelationGroupToString(relations []db.RelationContent) (string, error) {
+	groups := make([]string, 0, len(relations))
+	for _, relation := range relations {
+		groups = append(groups, relation.Parent)
+	}
+
+	out, err := json.Marshal(groups)
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}

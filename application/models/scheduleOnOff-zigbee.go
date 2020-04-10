@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/phanvanhai/device-service-support/application/light/cm"
 	nw "github.com/phanvanhai/device-service-support/network"
 	zigbeeConstants "github.com/phanvanhai/device-service-support/network/zigbee/cm"
 )
@@ -24,6 +23,10 @@ type netOnOffSchedule struct {
 	Time         uint32
 	Value        bool
 }
+
+// Cloud <-> DS: '[{"owner":"dev1", "time":1234, "value":"true"},{"owner":"dev1", "time":4321, "value":"false"}]'
+// 			: nil = '[{"owner":"dev1", "time":FFFF}]'
+// Coord --> DS: base64('uint16uint32booluint16uint32bool')
 
 func convertNetToEdgeOnOffSchedule(nw nw.Network, net netOnOffSchedule, ownerName string) EdgeOnOffSchedule {
 	shifPrefix := zigbeeConstants.PrefixHexValueNetGroupID
@@ -88,7 +91,7 @@ func decodeNetOnOffSchedules(scheduleStr string, size int) ([]netOnOffSchedule, 
 
 	result := make([]netOnOffSchedule, 0, size)
 	for i := 0; i < size; i++ {
-		if cm.CheckScheduleTime(sch[i].Time) == false {
+		if CheckScheduleTime(sch[i].Time) == false {
 			continue
 		}
 		result = append(result, sch[i])

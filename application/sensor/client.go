@@ -1,4 +1,4 @@
-package light
+package sensor
 
 import (
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
@@ -9,32 +9,32 @@ import (
 )
 
 const (
-	Name = "Light"
+	Name = "Sensor"
 )
 
-var l *Light
+var s *Sensor
 
-type Light struct {
+type Sensor struct {
 	lc      logger.LoggingClient
 	asyncCh chan<- *sdkModel.AsyncValues
 	tc      tc.Transceiver
 	nw      nw.Network
 }
 
-func NewClient(lc logger.LoggingClient, asyncCh chan<- *sdkModel.AsyncValues, nw nw.Network, tc tc.Transceiver) (*Light, error) {
-	if l == nil {
-		l, err := initializeClient(lc, asyncCh, nw, tc)
-		return l, err
+func NewClient(lc logger.LoggingClient, asyncCh chan<- *sdkModel.AsyncValues, nw nw.Network, tc tc.Transceiver) (*Sensor, error) {
+	if s == nil {
+		s, err := initializeClient(lc, asyncCh, nw, tc)
+		return s, err
 	}
-	return l, nil
+	return s, nil
 }
 
-func initializeClient(lc logger.LoggingClient, asyncCh chan<- *sdkModel.AsyncValues, nw nw.Network, tc tc.Transceiver) (*Light, error) {
-	l := &Light{
+func initializeClient(lc logger.LoggingClient, asyncCh chan<- *sdkModel.AsyncValues, nw nw.Network, tc tc.Transceiver) (*Sensor, error) {
+	s := &Sensor{
 		lc:      lc,
 		asyncCh: asyncCh,
 		nw:      nw,
 		tc:      tc,
 	}
-	return l, nil
+	return s, nil
 }

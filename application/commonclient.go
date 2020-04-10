@@ -11,7 +11,11 @@ import (
 	db "github.com/phanvanhai/device-service-support/support/db"
 	tc "github.com/phanvanhai/device-service-support/transceiver"
 
+	gatewayApp "github.com/phanvanhai/device-service-support/application/gateway"
+	lightGroupApp "github.com/phanvanhai/device-service-support/application/group"
 	lightApp "github.com/phanvanhai/device-service-support/application/light"
+	scenarioApp "github.com/phanvanhai/device-service-support/application/scenario"
+	sensorApp "github.com/phanvanhai/device-service-support/application/sensor"
 )
 
 // Application inteface
@@ -39,14 +43,14 @@ func NewApplicationClient(lc logger.LoggingClient, asyncCh chan<- *sdkModel.Asyn
 	switch profileName {
 	case lightApp.Name:
 		return lightApp.NewClient(lc, asyncCh, nw, tc)
-	// case Sensor:
-	// 	return nil, nil
-	// case LightGroup:
-	// 	return nil, nil
-	// case Scenario:
-	// 	return nil, nil
-	// case Gateway:
-	// 	return nil, nil
+	case sensorApp.Name:
+		return sensorApp.NewClient(lc, asyncCh, nw, tc)
+	case lightGroupApp.Name:
+		return lightGroupApp.NewClient(lc, asyncCh, nw, tc)
+	case scenarioApp.Name:
+		return scenarioApp.NewClient(lc)
+	case gatewayApp.Name:
+		return gatewayApp.NewClient(lc, nw)
 	default:
 		return nil, fmt.Errorf("unknown profile '%s' requested of object '%s' ", profileName, deviceName)
 	}

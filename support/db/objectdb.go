@@ -9,6 +9,11 @@ import (
 	sdk "github.com/phanvanhai/device-sdk-go/pkg/service"
 )
 
+type ScenarioContent struct {
+	Command string `json:"Command, omitempty"`
+	Body    string `json:"Body, omitempty"`
+}
+
 type Relation struct {
 	Parent  string `json:"Parent, omitempty"`
 	Element string `json:"Element, omitempty"`

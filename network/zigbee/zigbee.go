@@ -312,7 +312,7 @@ func (zb *Zigbee) UpdateFirmware(deviceName string, file interface{}) error {
 	zb.mutex.Lock()
 	defer zb.mutex.Unlock()
 
-	cmd := exec.Command("./commander/commander", "device info")
+	cmd := exec.Command("./commander/commander", "flash", file.(string), "--address 0x80000")
 	var out bytes.Buffer
 	multi := io.MultiWriter(os.Stdout, &out)
 	cmd.Stdout = multi
