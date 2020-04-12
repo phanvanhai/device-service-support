@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -285,13 +284,13 @@ func (zb *Zigbee) distributionEventRoutine() {
 }
 
 func (zb *Zigbee) sendRequestWithResponse(rawRequest []byte, responseFilter func(v interface{}) bool) (rep interface{}, err error) {
+	reper := zb.tc.Listen(responseFilter)
+	defer zb.tc.CancelListen(reper)
+
 	err = zb.tc.Sender(rawRequest, requestTimeout)
 	if err != nil {
 		return nil, err
 	}
-
-	reper := zb.tc.Listen(responseFilter)
-	defer zb.tc.CancelListen(reper)
 
 	timeOut := time.After(time.Duration(responseTimeout) * time.Millisecond)
 	select {
@@ -383,26 +382,32 @@ func (zb *Zigbee) filterCommand(devName string, cmd uint8) func(v interface{}) b
 func (zb *Zigbee) ConvertResourceByDevice(fromDevName string, fromRs string, toDevName string) string {
 	netRs, err := cache.Cache().NetResourceByDeviceResource(fromRs)
 	if err != nil {
+		str := fmt.Sprintf("Khong tim thay NetResourece theo Resource:%s - Device:%s", fromRs, fromDevName)
+		zb.logger.Error(str)
 		return ""
 	}
 
 	toRs, err := cache.Cache().DeviceResourceByNetResource(toDevName, netRs)
 	if err != nil {
+		str := fmt.Sprintf("Khong tim thay Resourece theo NetResource:%s - Device:%s", netRs, toDevName)
+		zb.logger.Error(str)
 		return ""
 	}
 
 	svc := sdk.RunningService()
-	rs1, ok1 := svc.DeviceResource(fromDevName, fromRs, "")
-	rs2, ok2 := svc.DeviceResource(fromDevName, toRs, "")
+	_, ok1 := svc.DeviceResource(fromDevName, fromRs, "")
+	_, ok2 := svc.DeviceResource(toDevName, toRs, "")
 
 	if !ok1 || !ok2 {
+		str := fmt.Sprintf("Khong tim thay Resource tu Cache DS")
+		zb.logger.Error(str)
 		return ""
 	}
 
-	ok := reflect.DeepEqual(rs1.Properties, rs2.Properties)
-	if !ok {
-		return ""
-	}
+	// ok := reflect.DeepEqual(rs1.Properties, rs2.Properties)
+	// if !ok {
+	// 	return ""
+	// }
 
 	return toRs
 }

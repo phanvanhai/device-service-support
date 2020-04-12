@@ -10,7 +10,7 @@ import (
 )
 
 // update Groups latest
-func (l *Light) updateGroupToDevice(devName string) error {
+func (l *Light) UpdateGroupToDevice(devName string) error {
 	reqs := make([]*sdkModel.CommandRequest, 1)
 	groups := db.DB().ElementDotGroups(devName)
 	netGroups := appModels.RelationGroupToNetValue(l.nw, groups, GroupLimit)
@@ -35,7 +35,7 @@ func (l *Light) updateGroupToDevice(devName string) error {
 	return nil
 }
 
-func (l *Light) groupWriteHandler(deviceName string, cmReq *sdkModel.CommandRequest, groupStr string) error {
+func (l *Light) GroupWriteHandler(deviceName string, cmReq *sdkModel.CommandRequest, groupStr string) error {
 	var groups []string
 	err := json.Unmarshal([]byte(groupStr), &groups)
 	if err != nil {
@@ -62,5 +62,13 @@ func (l *Light) groupWriteHandler(deviceName string, cmReq *sdkModel.CommandRequ
 		l.updateOpStateAndConnectdStatus(deviceName, false)
 		return err
 	}
+	str := fmt.Sprintf("Cap nhap thanh cong danh sach Group cua Device:%s", deviceName)
+	l.lc.Debug(str)
+
+	l.lc.Debug("sync on-off schedules of Device in DB")
+	l.SyncOnOffScheduleDBByGroups(deviceName, groups)
+
+	l.lc.Debug("sync dimming schedules of Device in DB")
+	l.SyncDimmingScheduleDBByGroups(deviceName, groups)
 	return nil
 }

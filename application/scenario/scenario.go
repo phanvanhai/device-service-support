@@ -55,9 +55,9 @@ func (s *Scenario) RemoveDeviceCallback(scenarioName string, protocols map[strin
 }
 
 func (s *Scenario) HandleReadCommands(scenarioName string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest) ([]*sdkModel.CommandValue, error) {
-	res := make([]*sdkModel.CommandValue, 0, len(reqs))
+	res := make([]*sdkModel.CommandValue, len(reqs))
 	for i, r := range reqs {
-		s.lc.Info(fmt.Sprintf("ScenarioApplication.HandleReadCommands: protocols: %v, resource: %v, request: %v", protocols, reqs[i].DeviceResourceName, reqs[i]))
+		s.lc.Info(fmt.Sprintf("ScenarioApplication.HandleReadCommands: resource: %v, request: %v", reqs[i].DeviceResourceName, reqs[i]))
 
 		if r.DeviceResourceName == ContentDr {
 			// Lay thong tin tu Support Database va tao ket qua
@@ -75,7 +75,7 @@ func (s *Scenario) HandleReadCommands(scenarioName string, protocols map[string]
 
 func (s *Scenario) HandleWriteCommands(scenarioName string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest, params []*sdkModel.CommandValue) error {
 	for i, p := range params {
-		s.lc.Info(fmt.Sprintf("ScenarioApplication.HandleWriteCommands: protocols: %v, resource: %v, parameters: %v", protocols, reqs[i].DeviceResourceName, params[i]))
+		s.lc.Info(fmt.Sprintf("ScenarioApplication.HandleWriteCommands: resource: %v, parameters: %v", reqs[i].DeviceResourceName, params[i]))
 
 		switch p.DeviceResourceName {
 		case TriggerDr:
@@ -135,6 +135,7 @@ func (s *Scenario) HandleWriteCommands(scenarioName string, protocols map[string
 			}
 
 			// cap nhap danh sach vao Database
+			// luon thay Name -> ID khi luu vao Database
 			pp := make(models.ProtocolProperties)
 			for _, ct := range content {
 				id := db.DB().NameToID(ct.Element)

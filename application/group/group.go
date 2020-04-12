@@ -9,6 +9,8 @@ import (
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
 	sdkModel "github.com/phanvanhai/device-sdk-go/pkg/models"
 	sdk "github.com/phanvanhai/device-sdk-go/pkg/service"
+
+	appModels "github.com/phanvanhai/device-service-support/application/models"
 )
 
 func (gr *LightGroup) EventCallback(async sdkModel.AsyncValues) error {
@@ -73,9 +75,9 @@ func (gr *LightGroup) HandleReadCommands(groupName string, protocols map[string]
 	sv := sdk.RunningService()
 	group, _ := sv.GetDeviceByName(groupName)
 
-	res := make([]*sdkModel.CommandValue, 0, len(reqs))
+	res := make([]*sdkModel.CommandValue, len(reqs))
 	for i, r := range reqs {
-		gr.lc.Info(fmt.Sprintf("LightGroupApplication.HandleReadCommands: protocols: %v, resource: %v, request: %v", protocols, reqs[i].DeviceResourceName, reqs[i]))
+		gr.lc.Info(fmt.Sprintf("LightGroupApplication.HandleReadCommands: resource: %v, request: %v", reqs[i].DeviceResourceName, reqs[i]))
 
 		switch r.DeviceResourceName {
 		case ScenarioDr:
@@ -103,27 +105,27 @@ func (gr *LightGroup) HandleReadCommands(groupName string, protocols map[string]
 			res[i] = newCmvl
 		case OnOffScheduleDr:
 			// Lay thong tin tu Support Database va tao ket qua
+			var schedulesStr string
 			pp, ok := group.Protocols[ScheduleProtocolName]
-			onoffs := "[]"
 			if ok {
-				onoffs, ok = pp[OnOffSchedulePropertyName]
-				if !ok {
-					onoffs = "[]"
-				}
+				schedulesStr, _ = pp[OnOffSchedulePropertyName]
 			}
-			newCmvl := sdkModel.NewStringValue(OnOffScheduleDr, 0, onoffs)
+			schs := appModels.StringIDToOnOffSchedule(schedulesStr)
+			schNameStr := appModels.OnOffScheduleToStringName(schs)
+
+			newCmvl := sdkModel.NewStringValue(OnOffScheduleDr, 0, schNameStr)
 			res[i] = newCmvl
 		case DimmingScheduleDr:
 			// Lay thong tin tu Support Database va tao ket qua
+			var schedulesStr string
 			pp, ok := group.Protocols[ScheduleProtocolName]
-			dims := "[]"
 			if ok {
-				dims, ok = pp[DimmingSchedulePropertyName]
-				if !ok {
-					dims = "[]"
-				}
+				schedulesStr, _ = pp[DimmingSchedulePropertyName]
 			}
-			newCmvl := sdkModel.NewStringValue(DimmingScheduleDr, 0, dims)
+			schs := appModels.StringIDToOnOffSchedule(schedulesStr)
+			schNameStr := appModels.OnOffScheduleToStringName(schs)
+
+			newCmvl := sdkModel.NewStringValue(DimmingScheduleDr, 0, schNameStr)
 			res[i] = newCmvl
 		default:
 			strErr := fmt.Sprintf("Khong ho tro doc Resource: %s", r.DeviceResourceName)
@@ -144,39 +146,31 @@ func (gr *LightGroup) HandleWriteCommands(groupName string, protocols map[string
 	if params[0].DeviceResourceName == MethodDr && params[1].DeviceResourceName == DeviceDr {
 		method, _ := params[0].StringValue()
 		elementName, _ := params[1].StringValue()
+		str := fmt.Sprintf("Manager Device: method:%s - Device:%s", method, elementName)
+		gr.lc.Debug(str)
 		err := gr.elementWriteHandler(groupName, method, elementName)
 		return err
 	}
 
 	for i, p := range params {
-		gr.lc.Info(fmt.Sprintf("LightGroupApplication.HandleWriteCommands: protocols: %v, resource: %v, parameters: %v", protocols, reqs[i].DeviceResourceName, params[i]))
+		gr.lc.Info(fmt.Sprintf("LightGroupApplication.HandleWriteCommands: resource: %v, parameters: %v", reqs[i].DeviceResourceName, params[i]))
 		switch p.DeviceResourceName {
 		case OnOffScheduleDr:
 			reqValue, _ := p.StringValue()
-			err := gr.onOffScheduleWriteHandler(groupName, reqValue)
+			err := gr.OnOffScheduleWriteHandler(groupName, reqValue)
 			if err != nil {
 				return err
 			}
 		case DimmingScheduleDr:
 			reqValue, _ := p.StringValue()
-			err := gr.dimmingScheduleWriteHandler(groupName, reqValue)
+			err := gr.DimmingScheduleWriteHandler(groupName, reqValue)
 			if err != nil {
 				return err
 			}
 		default:
 			var value interface{}
 			var err error
-			switch p.DeviceResourceName {
-			case OnOffDr:
-				value, _ = p.BoolValue()
-			case DimmingDr:
-				value, _ = p.Uint16Value()
-			default:
-				str := fmt.Sprintf("Khong ho tro ghi Resource:%s", p.DeviceResourceName)
-				gr.lc.Error(str)
-				return fmt.Errorf(str)
-			}
-
+			value = p.ValueToString()
 			err = gr.NormalWriteCommand(groupName, &reqs[i], p, value)
 			if err != nil {
 				return err

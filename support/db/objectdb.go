@@ -300,7 +300,7 @@ func (db *database) NameToID(name string) string {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
-	return db.getNameByID(name)
+	return db.getIDByName(name)
 }
 
 func (db *database) GroupDotElement(name string) []RelationContent {

@@ -32,9 +32,9 @@ func (g *Gateway) RemoveDeviceCallback(gatewayName string, protocols map[string]
 }
 
 func (g *Gateway) HandleReadCommands(gatewayName string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest) ([]*sdkModel.CommandValue, error) {
-	res := make([]*sdkModel.CommandValue, 0, len(reqs))
+	res := make([]*sdkModel.CommandValue, len(reqs))
 	for i, r := range reqs {
-		g.lc.Info(fmt.Sprintf("GatewayApplication.HandleReadCommands: protocols: %v, resource: %v, request: %v", protocols, reqs[i].DeviceResourceName, reqs[i]))
+		g.lc.Info(fmt.Sprintf("GatewayApplication.HandleReadCommands: resource: %v, request: %v", reqs[i].DeviceResourceName, reqs[i]))
 		switch r.DeviceResourceName {
 		case OnOffRelay1Dr:
 			value := g.getRelay()
@@ -52,7 +52,7 @@ func (g *Gateway) HandleReadCommands(gatewayName string, protocols map[string]mo
 
 func (g *Gateway) HandleWriteCommands(gatewayName string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest, params []*sdkModel.CommandValue) error {
 	for i, p := range params {
-		g.lc.Info(fmt.Sprintf("GatewayApplication.HandleWriteCommands: protocols: %v, resource: %v, parameters: %v", protocols, reqs[i].DeviceResourceName, params[i]))
+		g.lc.Info(fmt.Sprintf("GatewayApplication.HandleWriteCommands: resource: %v, parameters: %v", reqs[i].DeviceResourceName, params[i]))
 		switch p.DeviceResourceName {
 		case OnOffRelay1Dr:
 			value, _ := p.BoolValue()

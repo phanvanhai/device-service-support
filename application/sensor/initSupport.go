@@ -85,7 +85,7 @@ func (s *Sensor) Connect(dev *models.Device) (continueFlag bool, err error) {
 
 func (s *Sensor) initDevice(devName string) error {
 	// update Realtim
-	err := s.updateRealtime(devName)
+	err := s.UpdateRealtime(devName)
 	if err != nil {
 		return err
 	}

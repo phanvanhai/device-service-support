@@ -10,6 +10,7 @@ import (
 
 	nw "github.com/phanvanhai/device-service-support/network"
 	zigbeeConstants "github.com/phanvanhai/device-service-support/network/zigbee/cm"
+	"github.com/phanvanhai/device-service-support/support/db"
 )
 
 type EdgeDimmingSchedule struct {
@@ -24,18 +25,20 @@ type netDimmingSchedule struct {
 	Value        uint16
 }
 
+// Database: nil = '[]'
+// 			     = '[{"owner":"id", "time":1234, "value":100},{"owner":"id", "time":4321, "value":0}]'
 // Cloud <-> DS: '[{"owner":"dev1", "time":1234, "value":"1234"},{"owner":"dev1", "time":4321, "value":"5678"}]'
-// 			: nil = '[{"owner":"dev1", "time":FFFF}]'
+// 			: nil = '[]'
 // Coord --> DS: base64('uint16uint32uint16uint16uint32uint16')
 
-func convertNetToEdgeDimmingSchedule(nw nw.Network, net netDimmingSchedule, ownerName string) EdgeDimmingSchedule {
+func convertNetToEdgeDimmingSchedule(nw nw.Network, net netDimmingSchedule, owner string) EdgeDimmingSchedule {
 	shifPrefix := zigbeeConstants.PrefixHexValueNetGroupID
 	result := EdgeDimmingSchedule{
 		Time:  net.Time,
 		Value: net.Value,
 	}
 	if net.OwnerAddress == 0x0000 {
-		result.OwnerName = ownerName
+		result.OwnerName = owner
 	} else {
 		grInt := uint32(shifPrefix<<16) | uint32(net.OwnerAddress)
 		netID := fmt.Sprintf("%04X", grInt)
@@ -44,13 +47,13 @@ func convertNetToEdgeDimmingSchedule(nw nw.Network, net netDimmingSchedule, owne
 	return result
 }
 
-func convertEdgeToNetDimmingSchedule(nw nw.Network, edge EdgeDimmingSchedule, ownerName string) netDimmingSchedule {
+func convertEdgeToNetDimmingSchedule(nw nw.Network, edge EdgeDimmingSchedule, owner string) netDimmingSchedule {
 	result := netDimmingSchedule{
 		Time:  edge.Time,
 		Value: edge.Value,
 	}
 
-	if edge.OwnerName == ownerName {
+	if edge.OwnerName == owner {
 		result.OwnerAddress = 0x0000
 	} else {
 		netID := nw.NetIDByDeviceName(edge.OwnerName)
@@ -63,8 +66,11 @@ func convertEdgeToNetDimmingSchedule(nw nw.Network, edge EdgeDimmingSchedule, ow
 
 func encodeNetDimmingSchedules(schedules []netDimmingSchedule, size int) string {
 	if len(schedules) < size {
-		s := make([]netDimmingSchedule, size-len(schedules))
-		schedules = append(schedules, s...)
+		schs := make([]netDimmingSchedule, size-len(schedules))
+		for i := range schs {
+			schs[i].Time = TimeError
+		}
+		schedules = append(schedules, schs...)
 	}
 	if len(schedules) > size {
 		schedules = schedules[:size]
@@ -99,33 +105,66 @@ func decodeNetDimmingSchedules(scheduleStr string, size int) ([]netDimmingSchedu
 	return result, nil
 }
 
-func DimmingScheduleEdgeToNetValue(nw nw.Network, schedules []EdgeDimmingSchedule, ownerName string, size int) string {
+func DimmingScheduleEdgeToNetValue(nw nw.Network, schedules []EdgeDimmingSchedule, owner string, size int) string {
 	netSchs := make([]netDimmingSchedule, 0, len(schedules))
 	for _, sch := range schedules {
-		netSch := convertEdgeToNetDimmingSchedule(nw, sch, ownerName)
+		netSch := convertEdgeToNetDimmingSchedule(nw, sch, owner)
 		netSchs = append(netSchs, netSch)
 	}
 	return encodeNetDimmingSchedules(netSchs, size)
 }
 
-func NetValueToDimmingSchedule(nw nw.Network, value string, size int, ownerName string) ([]EdgeDimmingSchedule, error) {
+func NetValueToDimmingSchedule(nw nw.Network, value string, size int, owner string) ([]EdgeDimmingSchedule, error) {
 	netSchs, err := decodeNetDimmingSchedules(value, size)
 	if err != nil {
 		return nil, err
 	}
 	edgeSchs := make([]EdgeDimmingSchedule, 0, len(netSchs))
 	for _, sch := range netSchs {
-		eg := convertNetToEdgeDimmingSchedule(nw, sch, ownerName)
+		eg := convertNetToEdgeDimmingSchedule(nw, sch, owner)
 		edgeSchs = append(edgeSchs, eg)
 	}
 	return edgeSchs, nil
 }
 
 // String returns a JSON encoded string representation of the model
-func DimmingScheduleToString(schedules []EdgeDimmingSchedule) string {
+func DimmingScheduleToStringName(schedules []EdgeDimmingSchedule) string {
 	out, err := json.Marshal(schedules)
 	if err != nil {
-		return err.Error()
+		return ScheduleNilStr
 	}
 	return string(out)
+}
+
+func StringNameToDimmingSchedule(schedulesStr string) []EdgeDimmingSchedule {
+	var schedules []EdgeDimmingSchedule
+	err := json.Unmarshal([]byte(schedulesStr), &schedules)
+	if err != nil {
+		return schedules
+	}
+
+	return schedules
+}
+
+func DimmingScheduleToStringID(schedules []EdgeDimmingSchedule) string {
+	for i := range schedules {
+		schedules[i].OwnerName = db.DB().NameToID(schedules[i].OwnerName)
+	}
+	out, err := json.Marshal(schedules)
+	if err != nil {
+		return ScheduleNilStr
+	}
+	return string(out)
+}
+
+func StringIDToDimmingSchedule(schedulesStr string) []EdgeDimmingSchedule {
+	var schedules []EdgeDimmingSchedule
+	err := json.Unmarshal([]byte(schedulesStr), &schedules)
+	if err != nil {
+		return schedules
+	}
+	for i := range schedules {
+		schedules[i].OwnerName = db.DB().IDToName(schedules[i].OwnerName)
+	}
+	return schedules
 }

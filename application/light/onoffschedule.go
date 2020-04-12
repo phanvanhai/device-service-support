@@ -1,7 +1,6 @@
 package light
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
@@ -11,7 +10,7 @@ import (
 )
 
 // get OnOff-Schedules latest
-func (l *Light) getOnOffSchedulesFromDevice(devName string) error {
+func (l *Light) GetOnOffSchedulesFromDevice(devName string) error {
 	reqs := make([]*sdkModel.CommandRequest, 1)
 	request, ok := appModels.NewCommandRequest(devName, OnOffScheduleDr)
 	if !ok {
@@ -31,7 +30,9 @@ func (l *Light) getOnOffSchedulesFromDevice(devName string) error {
 	if err != nil {
 		return err
 	}
-	repStr := appModels.OnOffScheduleToString(repConverted)
+
+	// trong DB, luon su dung ID thay Name
+	repStr := appModels.OnOffScheduleToStringID(repConverted)
 	pp := make(models.ProtocolProperties)
 	pp[OnOffSchedulePropertyName] = repStr
 	db.DB().UpdateProperty(devName, ScheduleProtocolName, pp)
@@ -39,16 +40,7 @@ func (l *Light) getOnOffSchedulesFromDevice(devName string) error {
 }
 
 func combineOnOffSchedule(devName string, schs []appModels.EdgeOnOffSchedule) []appModels.EdgeOnOffSchedule {
-	var currentSchs []appModels.EdgeOnOffSchedule
-	pp, ok := db.DB().GetProperty(devName, ScheduleProtocolName)
-	if !ok {
-		return nil
-	}
-	str, ok := pp[OnOffSchedulePropertyName]
-	if !ok {
-		str = "[]"
-	}
-	json.Unmarshal([]byte(str), &currentSchs)
+	currentSchs := l.getOnOffSchedulesFromDB(devName)
 
 	var owner string
 	isDelete := false
@@ -63,32 +55,39 @@ func combineOnOffSchedule(devName string, schs []appModels.EdgeOnOffSchedule) []
 	}
 
 	result := make([]appModels.EdgeOnOffSchedule, 0, OnOffScheduleLimit)
-	if isDelete {
-		for _, s := range schs {
-			if s.OwnerName != owner {
-				result = append(result, s)
-			}
+	// loai bo schedules cu (co OwnerName = owner) trong danh sach hien tai:
+	for _, s := range currentSchs {
+		if s.OwnerName != owner {
+			result = append(result, s)
 		}
-	} else {
-		result = append(result, currentSchs...)
+	}
+
+	// neu truong hop la them schedule:
+	if !isDelete {
 		result = append(result, schs...)
 	}
 	return result
 }
 
-func (l *Light) onOffScheduleWriteHandler(deviceName string, cmReq *sdkModel.CommandRequest, scheduleStr string) error {
-	// chuyen doi noi dung r.Value
-	var schedules []appModels.EdgeDimmingSchedule
-	err := json.Unmarshal([]byte(scheduleStr), &schedules)
-	if err != nil {
-		return err
-	}
+func (l *Light) OnOffScheduleWriteHandler(deviceName string, cmReq *sdkModel.CommandRequest, scheduleStr string) error {
+	// chuyen doi noi dung string -> schedules
+	schedules := appModels.StringNameToOnOffSchedule(scheduleStr)
 
-	newSchs := combineDimmingSchedule(deviceName, schedules)
+	// loai bo nhung schedule loi (Owner = "")
+	j := 0
+	for _, s := range schedules {
+		if s.OwnerName != "" {
+			schedules[j] = s
+			j++
+		}
+	}
+	schedules = schedules[:j]
+
+	newSchs := combineOnOffSchedule(deviceName, schedules)
 	if len(newSchs) > OnOffScheduleLimit {
 		return fmt.Errorf("loi vuot qua so luong lap lich cho phep")
 	}
-	reqConverted := appModels.DimmingScheduleEdgeToNetValue(l.nw, newSchs, deviceName, DimmingScheduleLimit)
+	reqConverted := appModels.OnOffScheduleEdgeToNetValue(l.nw, newSchs, deviceName, OnOffScheduleLimit)
 
 	// tao CommandValue moi voi r.Value da duoc chuyen doi
 	cmvlConverted := sdkModel.NewStringValue(OnOffScheduleDr, 0, reqConverted)
@@ -99,7 +98,7 @@ func (l *Light) onOffScheduleWriteHandler(deviceName string, cmReq *sdkModel.Com
 	req[0] = cmReq
 
 	// Gui lenh
-	err = l.nw.WriteCommands(deviceName, req, param)
+	err := l.nw.WriteCommands(deviceName, req, param)
 	if err != nil {
 		l.lc.Error(err.Error())
 		l.updateOpStateAndConnectdStatus(deviceName, false)
@@ -107,23 +106,63 @@ func (l *Light) onOffScheduleWriteHandler(deviceName string, cmReq *sdkModel.Com
 	}
 
 	// Neu thanh cong, cap nhap lai thong tin trong Support Database
-	newStr := appModels.DimmingScheduleToString(newSchs)
-	pp := make(models.ProtocolProperties)
-	pp[DimmingSchedulePropertyName] = newStr
+	// truoc khi luu vao DB, can chuyen Name -> ID
+	newStr := appModels.OnOffScheduleToStringID(newSchs)
+	pp, ok := db.DB().GetProperty(deviceName, ScheduleProtocolName)
+	if !ok {
+		pp = make(models.ProtocolProperties)
+	}
+	pp[OnOffSchedulePropertyName] = newStr
 	db.DB().UpdateProperty(deviceName, ScheduleProtocolName, pp)
 
 	return nil
 }
 
-func (l *Light) getOnOffSchedulesFromDB(deviceName string) string {
+func (l *Light) getOnOffSchedulesFromDB(deviceName string) []appModels.EdgeOnOffSchedule {
 	// Lay thong tin tu Support Database va tao ket qua
 	pp, ok := db.DB().GetProperty(deviceName, ScheduleProtocolName)
-	onoffs := "[]"
+	onoffs := appModels.ScheduleNilStr
 	if ok {
 		onoffs, ok = pp[OnOffSchedulePropertyName]
 		if !ok {
-			onoffs = "[]"
+			onoffs = appModels.ScheduleNilStr
 		}
 	}
-	return onoffs
+
+	return appModels.StringIDToOnOffSchedule(onoffs)
+}
+
+func (l *Light) SyncOnOffScheduleDBByGroups(deviceName string, groups []string) {
+	schedules := l.getOnOffSchedulesFromDB(deviceName)
+	if len(schedules) <= 0 {
+		return
+	}
+
+	// loai bo nhung schudule khong lien quan den group hay chinh device
+	j := 0
+	for _, s := range schedules {
+		var isExist = false
+		if s.OwnerName == deviceName {
+			isExist = true
+		} else {
+			for _, g := range groups {
+				if s.OwnerName == g {
+					isExist = true
+					break
+				}
+			}
+		}
+
+		if isExist == true {
+			schedules[j] = s
+			j++
+		}
+	}
+	schedules = schedules[:j]
+
+	// cap nhap vao DB
+	repStr := appModels.OnOffScheduleToStringID(schedules)
+	pp := make(models.ProtocolProperties)
+	pp[OnOffSchedulePropertyName] = repStr
+	db.DB().UpdateProperty(deviceName, ScheduleProtocolName, pp)
 }

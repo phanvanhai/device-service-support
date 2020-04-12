@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/phanvanhai/device-service-support/support/db"
+
 	nw "github.com/phanvanhai/device-service-support/network"
 	zigbeeConstants "github.com/phanvanhai/device-service-support/network/zigbee/cm"
 )
@@ -24,18 +26,20 @@ type netOnOffSchedule struct {
 	Value        bool
 }
 
-// Cloud <-> DS: '[{"owner":"dev1", "time":1234, "value":"true"},{"owner":"dev1", "time":4321, "value":"false"}]'
-// 			: nil = '[{"owner":"dev1", "time":FFFF}]'
+// Database: nil = '[]'
+// 			     = '[{"owner":"id", "time":1234, "value":true},{"owner":"id", "time":4321, "value":false}]'
+// Cloud <-> DS: '[{"owner":"dev1", "time":1234, "value":true},{"owner":"dev1", "time":4321, "value":false}]'
+// 			: nil = '[]'
 // Coord --> DS: base64('uint16uint32booluint16uint32bool')
 
-func convertNetToEdgeOnOffSchedule(nw nw.Network, net netOnOffSchedule, ownerName string) EdgeOnOffSchedule {
+func convertNetToEdgeOnOffSchedule(nw nw.Network, net netOnOffSchedule, owner string) EdgeOnOffSchedule {
 	shifPrefix := zigbeeConstants.PrefixHexValueNetGroupID
 	result := EdgeOnOffSchedule{
 		Time:  net.Time,
 		Value: net.Value,
 	}
 	if net.OwnerAddress == 0x0000 {
-		result.OwnerName = ownerName
+		result.OwnerName = owner
 	} else {
 		grInt := uint32(shifPrefix<<16) | uint32(net.OwnerAddress)
 		netID := fmt.Sprintf("%04X", grInt)
@@ -44,13 +48,13 @@ func convertNetToEdgeOnOffSchedule(nw nw.Network, net netOnOffSchedule, ownerNam
 	return result
 }
 
-func convertEdgeToNetOnOffSchedule(nw nw.Network, edge EdgeOnOffSchedule, ownerName string) netOnOffSchedule {
+func convertEdgeToNetOnOffSchedule(nw nw.Network, edge EdgeOnOffSchedule, owner string) netOnOffSchedule {
 	result := netOnOffSchedule{
 		Time:  edge.Time,
 		Value: edge.Value,
 	}
 
-	if edge.OwnerName == ownerName {
+	if edge.OwnerName == owner {
 		result.OwnerAddress = 0x0000
 	} else {
 		netID := nw.NetIDByDeviceName(edge.OwnerName)
@@ -63,8 +67,11 @@ func convertEdgeToNetOnOffSchedule(nw nw.Network, edge EdgeOnOffSchedule, ownerN
 
 func encodeNetOnOffSchedules(schedules []netOnOffSchedule, size int) string {
 	if len(schedules) < size {
-		s := make([]netOnOffSchedule, size-len(schedules))
-		schedules = append(schedules, s...)
+		schs := make([]netOnOffSchedule, size-len(schedules))
+		for i := range schs {
+			schs[i].Time = TimeError
+		}
+		schedules = append(schedules, schs...)
 	}
 	if len(schedules) > size {
 		schedules = schedules[:size]
@@ -99,33 +106,72 @@ func decodeNetOnOffSchedules(scheduleStr string, size int) ([]netOnOffSchedule, 
 	return result, nil
 }
 
-func OnOffScheduleEdgeToNetValue(nw nw.Network, schedules []EdgeOnOffSchedule, ownerName string, size int) string {
+func OnOffScheduleEdgeToNetValue(nw nw.Network, schedules []EdgeOnOffSchedule, owner string, size int) string {
 	netSchs := make([]netOnOffSchedule, 0, len(schedules))
 	for _, sch := range schedules {
-		netSch := convertEdgeToNetOnOffSchedule(nw, sch, ownerName)
+		netSch := convertEdgeToNetOnOffSchedule(nw, sch, owner)
 		netSchs = append(netSchs, netSch)
 	}
 	return encodeNetOnOffSchedules(netSchs, size)
 }
 
-func NetValueToOnOffSchedule(nw nw.Network, value string, size int, ownerName string) ([]EdgeOnOffSchedule, error) {
+func NetValueToOnOffSchedule(nw nw.Network, value string, size int, owner string) ([]EdgeOnOffSchedule, error) {
 	netSchs, err := decodeNetOnOffSchedules(value, size)
 	if err != nil {
 		return nil, err
 	}
 	edgeSchs := make([]EdgeOnOffSchedule, 0, len(netSchs))
 	for _, sch := range netSchs {
-		eg := convertNetToEdgeOnOffSchedule(nw, sch, ownerName)
+		eg := convertNetToEdgeOnOffSchedule(nw, sch, owner)
 		edgeSchs = append(edgeSchs, eg)
 	}
 	return edgeSchs, nil
 }
 
 // String returns a JSON encoded string representation of the model
-func OnOffScheduleToString(schedules []EdgeOnOffSchedule) string {
+func OnOffScheduleToStringName(schedules []EdgeOnOffSchedule) string {
 	out, err := json.Marshal(schedules)
 	if err != nil {
-		return err.Error()
+		return ScheduleNilStr
 	}
 	return string(out)
+}
+
+func StringNameToOnOffSchedule(schedulesStr string) []EdgeOnOffSchedule {
+	var schedules []EdgeOnOffSchedule
+	if schedulesStr == "" {
+		schedulesStr = ScheduleNilStr
+	}
+	err := json.Unmarshal([]byte(schedulesStr), &schedules)
+	if err != nil {
+		return schedules
+	}
+
+	return schedules
+}
+
+func OnOffScheduleToStringID(schedules []EdgeOnOffSchedule) string {
+	for i := range schedules {
+		schedules[i].OwnerName = db.DB().NameToID(schedules[i].OwnerName)
+	}
+	out, err := json.Marshal(schedules)
+	if err != nil {
+		return ScheduleNilStr
+	}
+	return string(out)
+}
+
+func StringIDToOnOffSchedule(schedulesStr string) []EdgeOnOffSchedule {
+	var schedules []EdgeOnOffSchedule
+	if schedulesStr == "" {
+		schedulesStr = ScheduleNilStr
+	}
+	err := json.Unmarshal([]byte(schedulesStr), &schedules)
+	if err != nil {
+		return schedules
+	}
+	for i := range schedules {
+		schedules[i].OwnerName = db.DB().IDToName(schedules[i].OwnerName)
+	}
+	return schedules
 }

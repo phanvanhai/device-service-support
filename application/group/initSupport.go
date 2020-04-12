@@ -6,6 +6,7 @@ import (
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
 	sdk "github.com/phanvanhai/device-sdk-go/pkg/service"
 
+	appModels "github.com/phanvanhai/device-service-support/application/models"
 	"github.com/phanvanhai/device-service-support/support/common"
 	"github.com/phanvanhai/device-service-support/support/db"
 )
@@ -31,6 +32,13 @@ func (gr *LightGroup) provision(dev *models.Device) (continueFlag bool, err erro
 		}
 		if newdev != nil {
 			gr.lc.Debug("cap nhap lai thong tin device sau khi da cap phep")
+
+			// Khoi tao Schedule trong Database
+			pp := make(models.ProtocolProperties)
+			pp[OnOffSchedulePropertyName] = appModels.ScheduleNilStr
+			pp[DimmingSchedulePropertyName] = appModels.ScheduleNilStr
+			newdev.Protocols[ScheduleProtocolName] = pp
+
 			return false, sv.UpdateDevice(*newdev)
 		}
 		gr.lc.Debug("newdev after provision = nil")
@@ -42,15 +50,18 @@ func (gr *LightGroup) provision(dev *models.Device) (continueFlag bool, err erro
 func (gr *LightGroup) updateDB(group models.Device) error {
 	relations := db.DB().GroupDotElement(group.Name)
 	needUpdate := false
-	for i, r := range relations {
-		if db.DB().NameToID(r.Element) == "" {
+	j := 0
+	for _, r := range relations {
+		if db.DB().NameToID(r.Element) != "" {
+			relations[j] = r
+			j++
+		} else {
 			needUpdate = true
-			relations[i] = relations[len(relations)-1]
-			relations = relations[:len(relations)-1]
 			str := fmt.Sprintf("Can loai bo thong tin Device:%s trong Database", r.Element)
 			gr.lc.Debug(str)
 		}
 	}
+	relations = relations[:j]
 
 	if needUpdate {
 		str := fmt.Sprintf("Cap nhap lai Database cua Group:%s", group.Name)

@@ -8,7 +8,7 @@ import (
 	appModels "github.com/phanvanhai/device-service-support/application/models"
 )
 
-func ParseTimeToInt64(t time.Time) uint64 {
+func parseTimeToInt64(t time.Time) uint64 {
 	year, month, day := t.Date()
 	hour, min, sec := t.Clock()
 	var result uint64
@@ -16,9 +16,9 @@ func ParseTimeToInt64(t time.Time) uint64 {
 	return result
 }
 
-func (s *Sensor) updateRealtime(devName string) error {
+func (s *Sensor) UpdateRealtime(devName string) error {
 	t := time.Now()
-	time64 := ParseTimeToInt64(t)
+	time64 := parseTimeToInt64(t)
 
 	request, ok := appModels.NewCommandRequest(devName, RealtimeDr)
 	if !ok {

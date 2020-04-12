@@ -25,21 +25,24 @@ func (l *Light) EventCallback(async sdkModel.AsyncValues) error {
 
 	var hasRealtime = false
 
-	for i, a := range async.CommandValues {
-		if a.DeviceResourceName == RealtimeDr {
+	// loai bo report Realtime
+	j := 0
+	for _, a := range async.CommandValues {
+		if a.DeviceResourceName != RealtimeDr {
+			async.CommandValues[j] = a
+			j++
+		} else {
 			hasRealtime = true
-			// loai bo report Realtime
-			async.CommandValues[i] = async.CommandValues[len(async.CommandValues)-1]
-			async.CommandValues = async.CommandValues[:len(async.CommandValues)-1]
 		}
 	}
+	async.CommandValues = async.CommandValues[:j]
 
 	// send event
 	l.asyncCh <- &async
 
 	// update Realtime if have Realtime report
 	if hasRealtime {
-		l.updateRealtime(async.DeviceName)
+		l.UpdateRealtime(async.DeviceName)
 	}
 
 	return nil
@@ -98,9 +101,9 @@ func (l *Light) HandleReadCommands(deviceName string, protocols map[string]model
 		return nil, fmt.Errorf("thiet bi chua duoc ket noi")
 	}
 
-	res := make([]*sdkModel.CommandValue, 0, len(reqs))
+	res := make([]*sdkModel.CommandValue, len(reqs))
 	for i, r := range reqs {
-		l.lc.Info(fmt.Sprintf("LightApplication.HandleReadCommands: protocols: %v, resource: %v, request: %v", protocols, reqs[i].DeviceResourceName, reqs[i]))
+		l.lc.Info(fmt.Sprintf("LightApplication.HandleReadCommands: resource: %v, request: %v", reqs[i].DeviceResourceName, reqs[i]))
 		req := make([]*sdkModel.CommandRequest, 1)
 
 		switch r.DeviceResourceName {
@@ -128,12 +131,14 @@ func (l *Light) HandleReadCommands(deviceName string, protocols map[string]model
 		case OnOffScheduleDr:
 			// Lay thong tin tu Support Database va tao ket qua
 			onoffs := l.getOnOffSchedulesFromDB(deviceName)
-			newCmvl := sdkModel.NewStringValue(OnOffScheduleDr, 0, onoffs)
+			onoffsStr, _ := json.Marshal(onoffs)
+			newCmvl := sdkModel.NewStringValue(OnOffScheduleDr, 0, string(onoffsStr))
 			res[i] = newCmvl
 		case DimmingScheduleDr:
 			// Lay thong tin tu Support Database va tao ket qua
 			dims := l.getDimmingSchedulesFromDB(deviceName)
-			newCmvl := sdkModel.NewStringValue(DimmingScheduleDr, 0, dims)
+			dimsStr, _ := json.Marshal(dims)
+			newCmvl := sdkModel.NewStringValue(DimmingScheduleDr, 0, string(dimsStr))
 			res[i] = newCmvl
 		default:
 			// Gui lenh
@@ -163,26 +168,26 @@ func (l *Light) HandleWriteCommands(deviceName string, protocols map[string]mode
 	}
 
 	for i, p := range params {
-		l.lc.Info(fmt.Sprintf("LightApplication.HandleWriteCommands: protocols: %v, resource: %v, parameters: %v", protocols, reqs[i].DeviceResourceName, params[i]))
+		l.lc.Info(fmt.Sprintf("LightApplication.HandleWriteCommands: resource: %v, parameters: %v", reqs[i].DeviceResourceName, params[i]))
 
 		switch p.DeviceResourceName {
 		case OnOffScheduleDr:
 			// chuyen doi noi dung r.Value
 			reqValue, _ := p.StringValue()
-			err := l.onOffScheduleWriteHandler(deviceName, &reqs[i], reqValue)
+			err := l.OnOffScheduleWriteHandler(deviceName, &reqs[i], reqValue)
 			if err != nil {
 				return err
 			}
 		case DimmingScheduleDr:
 			reqValue, _ := p.StringValue()
-			err := l.dimmingScheduleWriteHandler(deviceName, &reqs[i], reqValue)
+			err := l.DimmingScheduleWriteHandler(deviceName, &reqs[i], reqValue)
 			if err != nil {
 				return err
 			}
 		case GroupDr:
 			// chuyen doi noi dung r.Value
 			reqValue, _ := p.StringValue()
-			err := l.groupWriteHandler(deviceName, &reqs[i], reqValue)
+			err := l.GroupWriteHandler(deviceName, &reqs[i], reqValue)
 			if err != nil {
 				return err
 			}

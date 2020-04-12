@@ -1,7 +1,6 @@
 package light
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
@@ -11,13 +10,14 @@ import (
 )
 
 // get Dimming-Schedules latest
-func (l *Light) getDimmingSchedulesFromDevice(devName string) error {
+func (l *Light) GetDimmingSchedulesFromDevice(devName string) error {
 	reqs := make([]*sdkModel.CommandRequest, 1)
 	request, ok := appModels.NewCommandRequest(devName, DimmingScheduleDr)
 	if !ok {
 		l.lc.Error("khong tim thay resource")
 		return fmt.Errorf("khong tim thay resource")
 	}
+
 	reqs[0] = request
 	cmvl, err := l.nw.ReadCommands(devName, reqs)
 	if err != nil {
@@ -30,7 +30,9 @@ func (l *Light) getDimmingSchedulesFromDevice(devName string) error {
 	if err != nil {
 		return err
 	}
-	repStr := appModels.DimmingScheduleToString(repConverted)
+
+	// trong DB, luon su dung ID thay Name
+	repStr := appModels.DimmingScheduleToStringID(repConverted)
 	pp := make(models.ProtocolProperties)
 	pp[DimmingSchedulePropertyName] = repStr
 	db.DB().UpdateProperty(devName, ScheduleProtocolName, pp)
@@ -38,16 +40,7 @@ func (l *Light) getDimmingSchedulesFromDevice(devName string) error {
 }
 
 func combineDimmingSchedule(devName string, schs []appModels.EdgeDimmingSchedule) []appModels.EdgeDimmingSchedule {
-	var currentSchs []appModels.EdgeDimmingSchedule
-	pp, ok := db.DB().GetProperty(devName, ScheduleProtocolName)
-	if !ok {
-		return nil
-	}
-	str, ok := pp[DimmingSchedulePropertyName]
-	if !ok {
-		str = "[]"
-	}
-	json.Unmarshal([]byte(str), &currentSchs)
+	currentSchs := l.getDimmingSchedulesFromDB(devName)
 
 	var owner string
 	isDelete := false
@@ -62,26 +55,33 @@ func combineDimmingSchedule(devName string, schs []appModels.EdgeDimmingSchedule
 	}
 
 	result := make([]appModels.EdgeDimmingSchedule, 0, DimmingScheduleLimit)
-	if isDelete {
-		for _, s := range schs {
-			if s.OwnerName != owner {
-				result = append(result, s)
-			}
+	// loai bo schedules cu (co OwnerName = owner) trong danh sach hien tai:
+	for _, s := range currentSchs {
+		if s.OwnerName != owner {
+			result = append(result, s)
 		}
-	} else {
-		result = append(result, currentSchs...)
+	}
+
+	// neu truong hop la them schedule:
+	if !isDelete {
 		result = append(result, schs...)
 	}
 	return result
 }
 
-func (l *Light) dimmingScheduleWriteHandler(deviceName string, cmReq *sdkModel.CommandRequest, scheduleStr string) error {
-	// chuyen doi noi dung r.Value
-	var schedules []appModels.EdgeDimmingSchedule
-	err := json.Unmarshal([]byte(scheduleStr), &schedules)
-	if err != nil {
-		return err
+func (l *Light) DimmingScheduleWriteHandler(deviceName string, cmReq *sdkModel.CommandRequest, scheduleStr string) error {
+	// chuyen doi noi dung string -> schedules
+	schedules := appModels.StringNameToDimmingSchedule(scheduleStr)
+
+	// loai bo nhung schedule loi (Owner = "")
+	j := 0
+	for _, s := range schedules {
+		if s.OwnerName != "" {
+			schedules[j] = s
+			j++
+		}
 	}
+	schedules = schedules[:j]
 
 	newSchs := combineDimmingSchedule(deviceName, schedules)
 	if len(newSchs) > DimmingScheduleLimit {
@@ -98,7 +98,7 @@ func (l *Light) dimmingScheduleWriteHandler(deviceName string, cmReq *sdkModel.C
 	req[0] = cmReq
 
 	// Gui lenh
-	err = l.nw.WriteCommands(deviceName, req, param)
+	err := l.nw.WriteCommands(deviceName, req, param)
 	if err != nil {
 		l.lc.Error(err.Error())
 		l.updateOpStateAndConnectdStatus(deviceName, false)
@@ -106,23 +106,62 @@ func (l *Light) dimmingScheduleWriteHandler(deviceName string, cmReq *sdkModel.C
 	}
 
 	// Neu thanh cong, cap nhap lai thong tin trong Support Database
-	newStr := appModels.DimmingScheduleToString(newSchs)
-	pp := make(models.ProtocolProperties)
+	// truoc khi luu vao DB, can chuyen Name -> ID
+	newStr := appModels.DimmingScheduleToStringID(newSchs)
+	pp, ok := db.DB().GetProperty(deviceName, ScheduleProtocolName)
+	if !ok {
+		pp = make(models.ProtocolProperties)
+	}
 	pp[DimmingSchedulePropertyName] = newStr
 	db.DB().UpdateProperty(deviceName, ScheduleProtocolName, pp)
 
 	return nil
 }
 
-func (l *Light) getDimmingSchedulesFromDB(deviceName string) string {
+func (l *Light) getDimmingSchedulesFromDB(deviceName string) []appModels.EdgeDimmingSchedule {
 	// Lay thong tin tu Support Database va tao ket qua
 	pp, ok := db.DB().GetProperty(deviceName, ScheduleProtocolName)
-	onoffs := "[]"
+	dimmings := appModels.ScheduleNilStr
 	if ok {
-		onoffs, ok = pp[DimmingSchedulePropertyName]
+		dimmings, ok = pp[DimmingSchedulePropertyName]
 		if !ok {
-			onoffs = "[]"
+			dimmings = appModels.ScheduleNilStr
 		}
 	}
-	return onoffs
+
+	return appModels.StringIDToDimmingSchedule(dimmings)
+}
+
+func (l *Light) SyncDimmingScheduleDBByGroups(deviceName string, groups []string) {
+	schedules := l.getDimmingSchedulesFromDB(deviceName)
+	if len(schedules) <= 0 {
+		return
+	}
+
+	// loai bo nhung schudule khong lien quan den group hay chinh device
+	j := 0
+	for _, s := range schedules {
+		var isExist = false
+		if s.OwnerName == deviceName {
+			isExist = true
+		} else {
+			for _, g := range groups {
+				if s.OwnerName == g {
+					isExist = true
+					break
+				}
+			}
+		}
+
+		if isExist == true {
+			schedules[j] = s
+			j++
+		}
+	}
+	schedules = schedules[:j]
+	// cap nhap vao DB
+	repStr := appModels.DimmingScheduleToStringID(schedules)
+	pp := make(models.ProtocolProperties)
+	pp[DimmingSchedulePropertyName] = repStr
+	db.DB().UpdateProperty(deviceName, ScheduleProtocolName, pp)
 }

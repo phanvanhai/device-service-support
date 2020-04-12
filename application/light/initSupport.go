@@ -5,6 +5,7 @@ import (
 
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
 	sdk "github.com/phanvanhai/device-sdk-go/pkg/service"
+	appModels "github.com/phanvanhai/device-service-support/application/models"
 	db "github.com/phanvanhai/device-service-support/support/db"
 )
 
@@ -29,6 +30,13 @@ func (l *Light) Provision(dev *models.Device) (continueFlag bool, err error) {
 		}
 		if newdev != nil {
 			l.lc.Debug("cap nhap lai thong tin device sau khi da cap phep")
+
+			// Khoi tao Schedule trong Database
+			pp := make(models.ProtocolProperties)
+			pp[OnOffSchedulePropertyName] = appModels.ScheduleNilStr
+			pp[DimmingSchedulePropertyName] = appModels.ScheduleNilStr
+			newdev.Protocols[ScheduleProtocolName] = pp
+
 			return false, sv.UpdateDevice(*newdev)
 		}
 		l.lc.Debug("newdev after provision = nil")
@@ -85,21 +93,24 @@ func (l *Light) Connect(dev *models.Device) (continueFlag bool, err error) {
 
 func (l *Light) initDevice(devName string) error {
 	// update Groups latest
-	err := l.updateGroupToDevice(devName)
+	l.lc.Debug("update groups to Device")
+	err := l.UpdateGroupToDevice(devName)
 	if err != nil {
 		return err
 	}
 
-	// get OnOff-Schedules latest
-	err = l.getOnOffSchedulesFromDevice(devName)
-	if err != nil {
-		return err
-	}
+	// l.lc.Debug("get on-off schedule of Device")
+	// // get OnOff-Schedules latest
+	// err = l.GetOnOffSchedulesFromDevice(devName)
+	// if err != nil {
+	// 	return err
+	// }
 
-	// get Dimming-Schedules latest
-	err = l.getDimmingSchedulesFromDevice(devName)
-	if err != nil {
-		return err
-	}
+	// l.lc.Debug("get schedule to Device")
+	// // get Dimming-Schedules latest
+	// err = l.GetDimmingSchedulesFromDevice(devName)
+	// if err != nil {
+	// 	return err
+	// }
 	return nil
 }

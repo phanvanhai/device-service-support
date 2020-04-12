@@ -203,12 +203,14 @@ func (zc *zigbeeCache) deleteGroupAddressByNetID(netID string) {
 	netInt64, err := strconv.ParseUint(netID, 16, 32)
 	if err == nil {
 		addr := int(netInt64 & 0xFFFF)
-		for i, v := range zc.groupAddress {
-			if v == addr {
-				zc.groupAddress[i] = zc.groupAddress[len(zc.groupAddress)-1]
-				zc.groupAddress = zc.groupAddress[:len(zc.groupAddress)-1]
+		j := 0
+		for _, v := range zc.groupAddress {
+			if v != addr {
+				zc.groupAddress[j] = v
+				j++
 			}
 		}
+		zc.groupAddress = zc.groupAddress[:j]
 	}
 }
 
@@ -256,6 +258,7 @@ func (zc *zigbeeCache) GenerateNetGroupID() (string, error) {
 			for i, v := range zc.groupAddress {
 				if (i + 1) != v {
 					addr = i + 1
+					break
 				}
 			}
 		}

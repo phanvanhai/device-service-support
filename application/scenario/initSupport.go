@@ -13,15 +13,19 @@ import (
 func (s *Scenario) updateDB(scenario models.Device) error {
 	relations := db.DB().ScenarioDotElement(scenario.Name)
 	needUpdate := false
-	for i, r := range relations {
-		if db.DB().NameToID(r.Element) == "" {
-			needUpdate = true
-			relations[i] = relations[len(relations)-1]
-			relations = relations[:len(relations)-1]
+
+	j := 0
+	for _, r := range relations {
+		if db.DB().NameToID(r.Element) != "" {
+			relations[j] = r
+			j++
+		} else {
 			str := fmt.Sprintf("Can loai bo thong tin Element:%s trong Database", r.Element)
 			s.lc.Debug(str)
+			needUpdate = true
 		}
 	}
+	relations = relations[:j]
 
 	if needUpdate {
 		str := fmt.Sprintf("Cap nhap lai Database cua Scenario:%s", scenario.Name)

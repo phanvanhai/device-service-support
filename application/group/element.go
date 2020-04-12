@@ -27,17 +27,22 @@ func (gr *LightGroup) addElement(groupName string, elementName string) error {
 	}
 
 	// tao danh sach nhom cho Element
+	// du element da luu group -> van gui nhu binh thuong
+	// vi co the element loi o phan update cau hinh group, user can lam lai buoc them group
 	relations := db.DB().ElementDotGroups(elementName)
-	grs := make([]string, len(relations)+1)
-	for i, r := range relations {
+	grs := make([]string, 0, len(relations)+1)
+	var grExist = false
+	for _, r := range relations {
 		if r.Parent == groupName {
 			str := fmt.Sprintf("Group:%s da co san Device:%s", groupName, elementName)
 			gr.lc.Debug(str)
-			return nil
+			grExist = true
 		}
-		grs[i] = r.Parent
+		grs = append(grs, r.Parent)
 	}
-	grs[len(relations)] = groupName
+	if grExist == false {
+		grs = append(grs, groupName)
+	}
 
 	// gui lenh
 	grsStr, err := json.Marshal(grs)
@@ -56,6 +61,7 @@ func (gr *LightGroup) addElement(groupName string, elementName string) error {
 	gr.lc.Debug("Da them Device:%s vao Group:%s", elementName, groupName)
 
 	// cap nhap vao DB cua Group
+	// luon thay Name -> ID khi luu vao Database
 	pp, ok := group.Protocols[common.RelationProtocolNameConst]
 	if !ok {
 		pp = make(models.ProtocolProperties)
@@ -71,13 +77,13 @@ func (gr *LightGroup) addElement(groupName string, elementName string) error {
 
 	gr.lc.Debug("Bat dau cap nhap thong tin cau hinh cua Group:%s toi Device:%s", groupName, elementName)
 	// Cap nhap OnOff Schedules
-	err = gr.updateOnOffScheduleElement(groupName, elementName)
+	err = gr.UpdateOnOffScheduleToElement(groupName, elementName)
 	if err != nil {
 		gr.lc.Error(err.Error())
 		return err
 	}
 	// Cap nhap Dimming Schedules
-	err = gr.updateDimmingScheduleElement(groupName, elementName)
+	err = gr.UpdateDimmingScheduleToElement(groupName, elementName)
 	if err != nil {
 		gr.lc.Error(err.Error())
 		return err

@@ -10,67 +10,67 @@ import (
 	appModels "github.com/phanvanhai/device-service-support/application/models"
 )
 
-func (gr *LightGroup) updateDimmingScheduleElement(groupName string, element string) error {
+func (gr *LightGroup) UpdateDimmingScheduleToElement(groupName string, element string) error {
 	sv := sdk.RunningService()
 	group, _ := sv.GetDeviceByName(groupName)
 
+	var schedulesStr string
 	pp, ok := group.Protocols[ScheduleProtocolName]
-	schedulesStr := "[]"
 	if ok {
-		schedulesStr, ok = pp[DimmingSchedulePropertyName]
-		if !ok {
-			schedulesStr = "[]"
-		}
+		schedulesStr, _ = pp[DimmingSchedulePropertyName]
 	}
 
+	schs := appModels.StringIDToDimmingSchedule(schedulesStr)
+	// khi gui toi Element, neu schudle = nil -> tao 1 schedule bieu dien gia tri nil
+	if len(schs) == 0 {
+		scheduleNil := appModels.EdgeDimmingSchedule{
+			OwnerName: groupName,
+			Time:      appModels.CreateScheuleTimeError()}
+		schs = append(schs, scheduleNil)
+	}
+
+	schedulesStr = appModels.DimmingScheduleToStringName(schs)
+	str := fmt.Sprintf("gui Dimming schedule toi cac device. Dimming=%s", schedulesStr)
+	gr.lc.Debug(str)
 	return gr.WriteCommandByResource(groupName, DimmingScheduleDr, schedulesStr, element)
 }
 
-func validateDimmingSchedule(name string, schedulesStr string) (string, error) {
-	var schedules []appModels.EdgeDimmingSchedule
-	err := json.Unmarshal([]byte(schedulesStr), &schedules)
-	if err != nil {
-		str := fmt.Sprintf("Loi phan tich thanh chuoi lap lich. Loi:%s", err.Error())
-		gr.lc.Error(str)
-		return "", fmt.Errorf(str)
-	}
-	for i := range schedules {
-		schedules[i].OwnerName = name
-	}
-
-	out, err := json.Marshal(schedules)
-	if err != nil {
-		str := fmt.Sprintf("Loi tao chuoi lap lich. Loi:%s", err.Error())
-		gr.lc.Error(str)
-		return "", fmt.Errorf(str)
-	}
-	return string(out), nil
-}
-
-func (gr *LightGroup) dimmingScheduleWriteHandler(groupName string, dimmingStr string) error {
-	value, err := validateDimmingSchedule(groupName, dimmingStr)
-	if err != nil {
-		return err
-	}
-
+func (gr *LightGroup) DimmingScheduleWriteHandler(groupName string, dimmingStr string) error {
 	sv := sdk.RunningService()
 	group, _ := sv.GetDeviceByName(groupName)
 
+	schs := appModels.StringNameToDimmingSchedule(dimmingStr)
+	// fill OwnerName
+	for i := range schs {
+		schs[i].OwnerName = groupName
+	}
+
 	// cap nhap vao DB cua Group
+	// truoc khi luu vao DB, can chuyen Name -> ID
+	strID := appModels.DimmingScheduleToStringID(schs)
 	pp, ok := group.Protocols[ScheduleProtocolName]
 	if !ok {
 		pp = make(models.ProtocolProperties)
 	}
-	pp[DimmingSchedulePropertyName] = value
+	pp[DimmingSchedulePropertyName] = strID
 	group.Protocols[ScheduleProtocolName] = pp
-	err = sv.UpdateDevice(group)
+	err := sv.UpdateDevice(group)
 	if err != nil {
 		gr.lc.Error(err.Error())
 		return err
 	}
 
 	// Gui lenh Unicast toi cac device
-	errInfos := gr.WriteCommandToAll(groupName, DimmingScheduleDr, value)
+	// khi gui toi Element, neu schudle = nil -> tao 1 schedule bieu dien gia tri nil
+	if len(schs) == 0 {
+		scheduleNil := appModels.EdgeDimmingSchedule{
+			OwnerName: groupName,
+			Time:      appModels.CreateScheuleTimeError()}
+		schs = append(schs, scheduleNil)
+	}
+	strName := appModels.DimmingScheduleToStringName(schs)
+
+	errInfos := gr.WriteCommandToAll(groupName, DimmingScheduleDr, strName)
 	for _, e := range errInfos {
 		if e.Error != "" {
 			errStr, _ := json.Marshal(errInfos)

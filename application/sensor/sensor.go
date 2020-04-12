@@ -21,22 +21,24 @@ func (s *Sensor) EventCallback(async sdkModel.AsyncValues) error {
 	}
 
 	var hasRealtime = false
-
-	for i, a := range async.CommandValues {
-		if a.DeviceResourceName == RealtimeDr {
+	// loai bo report Realtime
+	j := 0
+	for _, a := range async.CommandValues {
+		if a.DeviceResourceName != RealtimeDr {
+			async.CommandValues[j] = a
+			j++
+		} else {
 			hasRealtime = true
-			// loai bo report Realtime
-			async.CommandValues[i] = async.CommandValues[len(async.CommandValues)-1]
-			async.CommandValues = async.CommandValues[:len(async.CommandValues)-1]
 		}
 	}
+	async.CommandValues = async.CommandValues[:j]
 
 	// send event
 	s.asyncCh <- &async
 
 	// update Realtime if have Realtime report
 	if hasRealtime {
-		s.updateRealtime(async.DeviceName)
+		s.UpdateRealtime(async.DeviceName)
 	}
 
 	return nil
@@ -95,9 +97,9 @@ func (s *Sensor) HandleReadCommands(deviceName string, protocols map[string]mode
 		return nil, fmt.Errorf("thiet bi chua duoc ket noi")
 	}
 
-	res := make([]*sdkModel.CommandValue, 0, len(reqs))
+	res := make([]*sdkModel.CommandValue, len(reqs))
 	for i, r := range reqs {
-		s.lc.Info(fmt.Sprintf("SensorApplication.HandleReadCommands: protocols: %v, resource: %v, request: %v", protocols, reqs[i].DeviceResourceName, reqs[i]))
+		s.lc.Info(fmt.Sprintf("SensorApplication.HandleReadCommands: resource: %v, request: %v", reqs[i].DeviceResourceName, reqs[i]))
 		req := make([]*sdkModel.CommandRequest, 1)
 
 		// Gui lenh
@@ -126,7 +128,7 @@ func (s *Sensor) HandleWriteCommands(deviceName string, protocols map[string]mod
 	}
 
 	for i, p := range params {
-		s.lc.Info(fmt.Sprintf("SensorApplication.HandleWriteCommands: protocols: %v, resource: %v, parameters: %v", protocols, reqs[i].DeviceResourceName, params[i]))
+		s.lc.Info(fmt.Sprintf("SensorApplication.HandleWriteCommands: resource: %v, parameters: %v", reqs[i].DeviceResourceName, params[i]))
 
 		param := make([]*sdkModel.CommandValue, 1)
 		param[0] = p
