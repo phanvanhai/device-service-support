@@ -45,15 +45,15 @@ func (l *Light) Provision(dev *models.Device) (continueFlag bool, err error) {
 	return true, nil
 }
 
-func (l *Light) updateOpStateAndConnectdStatus(devName string, status bool) (bool, error) {
+func (l *Light) updateOpStateAndConnectdStatus(deviceName string, status bool) (bool, error) {
 	sv := sdk.RunningService()
-	dev, err := sv.GetDeviceByName(devName)
+	dev, err := sv.GetDeviceByName(deviceName)
 	if err != nil {
 		return false, err
 	}
 	var notUpdate = true
 	if status == false {
-		db.DB().SetConnectedStatus(devName, false)
+		db.DB().SetConnectedStatus(deviceName, false)
 		if dev.OperatingState == models.Enabled {
 			dev.OperatingState = models.Disabled
 			l.lc.Debug("cap nhap lai OpState = Disable")
@@ -91,26 +91,30 @@ func (l *Light) Connect(dev *models.Device) (continueFlag bool, err error) {
 	return
 }
 
-func (l *Light) initDevice(devName string) error {
-	// update Groups latest
-	l.lc.Debug("update groups to Device")
-	err := l.UpdateGroupToDevice(devName)
+func (l *Light) initDevice(deviceName string) error {
+	l.lc.Debug("update on-off schedule of Device")
+	// get OnOff-Schedules latest
+	err := l.UpdateOnOffSchedulesToDevice(deviceName)
 	if err != nil {
+		l.lc.Error(err.Error())
 		return err
 	}
 
-	// l.lc.Debug("get on-off schedule of Device")
-	// // get OnOff-Schedules latest
-	// err = l.GetOnOffSchedulesFromDevice(devName)
-	// if err != nil {
-	// 	return err
-	// }
+	l.lc.Debug("update schedule to Device")
+	// get Dimming-Schedules latest
+	err = l.UpdateDimmingSchedulesToDevice(deviceName)
+	if err != nil {
+		l.lc.Error(err.Error())
+		return err
+	}
 
-	// l.lc.Debug("get schedule to Device")
-	// // get Dimming-Schedules latest
-	// err = l.GetDimmingSchedulesFromDevice(devName)
-	// if err != nil {
-	// 	return err
-	// }
+	// update Groups latest
+	l.lc.Debug("update groups to Device")
+	err = l.UpdateGroupToDevice(deviceName)
+	if err != nil {
+		l.lc.Error(err.Error())
+		return err
+	}
+
 	return nil
 }

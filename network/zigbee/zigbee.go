@@ -182,6 +182,18 @@ func filterAddObject(v interface{}) bool {
 	return false
 }
 
+func filterDeleteObject(v interface{}) bool {
+	a := models.Header{}
+	// Error with unmarshaling
+	if err := json.Unmarshal(v.([]byte), &a); err != nil {
+		return false
+	}
+	if a.Cmd == cm.DeleteObjectCmdConst {
+		return true
+	}
+	return false
+}
+
 func getNetworkProperties(d *contract.Device) (contract.ProtocolProperties, bool) {
 	pp, ok := d.Protocols[common.GeneralProtocolNameConst]
 	return pp, ok
@@ -230,7 +242,7 @@ func (zb *Zigbee) DeleteObject(name string, protocols map[string]contract.Protoc
 			return err
 		}
 
-		rep, err := zb.sendRequestWithResponse(rawRequest, filterAddObject)
+		rep, err := zb.sendRequestWithResponse(rawRequest, filterDeleteObject)
 		if err != nil {
 			return err
 		}

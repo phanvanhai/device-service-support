@@ -4,18 +4,20 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/edgexfoundry/go-mod-core-contracts/models"
 	sdkModel "github.com/phanvanhai/device-sdk-go/pkg/models"
+	sdk "github.com/phanvanhai/device-sdk-go/pkg/service"
 	appModels "github.com/phanvanhai/device-service-support/application/models"
 	db "github.com/phanvanhai/device-service-support/support/db"
 )
 
 // update Groups latest
-func (l *Light) UpdateGroupToDevice(devName string) error {
+func (l *Light) UpdateGroupToDevice(deviceName string) error {
 	reqs := make([]*sdkModel.CommandRequest, 1)
-	groups := db.DB().ElementDotGroups(devName)
+	groups := db.DB().ElementDotGroups(deviceName)
 	netGroups := appModels.RelationGroupToNetValue(l.nw, groups, GroupLimit)
 
-	request, ok := appModels.NewCommandRequest(devName, GroupDr)
+	request, ok := appModels.NewCommandRequest(deviceName, GroupDr)
 	if !ok {
 		l.lc.Error("khong tim thay resource")
 		return fmt.Errorf("khong tim thay resource")
@@ -26,18 +28,21 @@ func (l *Light) UpdateGroupToDevice(devName string) error {
 	param = append(param, cmvlConverted)
 
 	reqs[0] = request
-	err := l.nw.WriteCommands(devName, reqs, param)
-	if err != nil {
-		l.lc.Error(err.Error())
-		l.updateOpStateAndConnectdStatus(devName, false)
-		return err
-	}
-	return nil
+	err := l.nw.WriteCommands(deviceName, reqs, param)
+
+	return err
 }
 
 func (l *Light) GroupWriteHandler(deviceName string, cmReq *sdkModel.CommandRequest, groupStr string) error {
+	sv := sdk.RunningService()
+	dev, err := sv.GetDeviceByName(deviceName)
+	if err != nil {
+		l.lc.Error(err.Error())
+		return nil
+	}
+
 	var groups []string
-	err := json.Unmarshal([]byte(groupStr), &groups)
+	err = json.Unmarshal([]byte(groupStr), &groups)
 	if err != nil {
 		return err
 	}
@@ -66,9 +71,26 @@ func (l *Light) GroupWriteHandler(deviceName string, cmReq *sdkModel.CommandRequ
 	l.lc.Debug(str)
 
 	l.lc.Debug("sync on-off schedules of Device in DB")
-	l.SyncOnOffScheduleDBByGroups(deviceName, groups)
+	newOnOff, change1 := l.SyncOnOffScheduleDBByGroups(deviceName, groups)
 
 	l.lc.Debug("sync dimming schedules of Device in DB")
-	l.SyncDimmingScheduleDBByGroups(deviceName, groups)
+	newDimming, change2 := l.SyncDimmingScheduleDBByGroups(deviceName, groups)
+
+	if !change1 && !change2 {
+		return nil
+	}
+
+	pp, ok := dev.Protocols[ScheduleProtocolName]
+	if !ok {
+		pp = make(models.ProtocolProperties)
+	}
+	pp[OnOffSchedulePropertyName] = newOnOff
+	pp[DimmingSchedulePropertyName] = newDimming
+	err = sv.UpdateDevice(dev)
+	if err != nil {
+		l.lc.Error(err.Error())
+		return err
+	}
+
 	return nil
 }

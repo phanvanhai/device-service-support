@@ -6,5 +6,6 @@ const (
 	ReportTimeDr      = "Sensor-ReportTime"
 	RealtimeDr        = "Sensor-Realtime"
 	HistoricalEventDr = "Sensor-HistoricalEvent"
+	ScenarioDr        = "Sensor-Scenario"
 	PingDr            = "Sensor-Ping"
 )

@@ -1,6 +1,7 @@
 package sensor
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
@@ -99,6 +100,19 @@ func (s *Sensor) HandleReadCommands(deviceName string, protocols map[string]mode
 
 	res := make([]*sdkModel.CommandValue, len(reqs))
 	for i, r := range reqs {
+		if r.DeviceResourceName == ScenarioDr {
+			relations := db.DB().ElementDotScenario(deviceName)
+			relationStr, err := json.Marshal(relations)
+			if err != nil {
+				str := fmt.Sprintf("Loi phan tich noi dung. Loi:%s", err.Error())
+				s.lc.Error(str)
+				return nil, err
+			}
+			newCmvl := sdkModel.NewStringValue(ScenarioDr, 0, string(relationStr))
+			res[i] = newCmvl
+			continue
+		}
+
 		s.lc.Info(fmt.Sprintf("SensorApplication.HandleReadCommands: resource: %v, request: %v", reqs[i].DeviceResourceName, reqs[i]))
 		req := make([]*sdkModel.CommandRequest, 1)
 

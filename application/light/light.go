@@ -130,14 +130,14 @@ func (l *Light) HandleReadCommands(deviceName string, protocols map[string]model
 			res[i] = newCmvl
 		case OnOffScheduleDr:
 			// Lay thong tin tu Support Database va tao ket qua
-			onoffs := l.getOnOffSchedulesFromDB(deviceName)
-			onoffsStr, _ := json.Marshal(onoffs)
+			onoffs := l.GetOnOffSchedulesFromDB(deviceName)
+			onoffsStr := appModels.OnOffScheduleToStringName(onoffs)
 			newCmvl := sdkModel.NewStringValue(OnOffScheduleDr, 0, string(onoffsStr))
 			res[i] = newCmvl
 		case DimmingScheduleDr:
 			// Lay thong tin tu Support Database va tao ket qua
-			dims := l.getDimmingSchedulesFromDB(deviceName)
-			dimsStr, _ := json.Marshal(dims)
+			dims := l.GetDimmingSchedulesFromDB(deviceName)
+			dimsStr := appModels.DimmingScheduleToStringName(dims)
 			newCmvl := sdkModel.NewStringValue(DimmingScheduleDr, 0, string(dimsStr))
 			res[i] = newCmvl
 		default:

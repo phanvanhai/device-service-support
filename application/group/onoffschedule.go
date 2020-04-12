@@ -62,6 +62,7 @@ func (gr *LightGroup) OnOffScheduleWriteHandler(groupName string, onoffStr strin
 
 	// Gui lenh Unicast toi cac device
 	// khi gui toi Element, neu schudle = nil -> tao 1 schedule bieu dien gia tri nil
+	schs = appModels.StringIDToOnOffSchedule(strID)
 	if len(schs) == 0 {
 		scheduleNil := appModels.EdgeOnOffSchedule{
 			OwnerName: groupName,
