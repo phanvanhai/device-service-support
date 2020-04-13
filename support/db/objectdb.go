@@ -304,6 +304,9 @@ func (db *database) NameToID(name string) string {
 }
 
 func (db *database) GroupDotElement(name string) []RelationContent {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
 	if db.getObjectType(name) != common.GroupTypeConst {
 		return nil
 	}
@@ -313,6 +316,11 @@ func (db *database) GroupDotElement(name string) []RelationContent {
 	for r, ct := range db.relationGroup {
 		if r.Parent == id {
 			e, _ := db.objectIDName[r.Element]
+			if e.Name == "" {
+				db.deleteAllRelationByID(r.Element)
+				continue
+			}
+
 			content := RelationContent{
 				Relation: Relation{
 					Parent:  name,
@@ -327,6 +335,9 @@ func (db *database) GroupDotElement(name string) []RelationContent {
 }
 
 func (db *database) ScenarioDotElement(name string) []RelationContent {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
 	if db.getObjectType(name) != common.ScenarioTypeConst {
 		return nil
 	}
@@ -336,6 +347,11 @@ func (db *database) ScenarioDotElement(name string) []RelationContent {
 	for r, ct := range db.relationScenario {
 		if r.Parent == id {
 			e, _ := db.objectIDName[r.Element]
+			if e.Name == "" {
+				db.deleteAllRelationByID(r.Element)
+				continue
+			}
+
 			content := RelationContent{
 				Relation: Relation{
 					Parent:  name,
@@ -350,6 +366,9 @@ func (db *database) ScenarioDotElement(name string) []RelationContent {
 }
 
 func (db *database) ElementDotGroups(name string) []RelationContent {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
 	id := db.getIDByName(name)
 	if id == "" {
 		return nil
@@ -359,6 +378,11 @@ func (db *database) ElementDotGroups(name string) []RelationContent {
 	for r, ct := range db.relationGroup {
 		if r.Element == id {
 			p, _ := db.objectIDName[r.Parent]
+			if p.Name == "" {
+				db.deleteAllRelationByID(r.Parent)
+				continue
+			}
+
 			content := RelationContent{
 				Relation: Relation{
 					Parent:  p.Name,
@@ -373,6 +397,9 @@ func (db *database) ElementDotGroups(name string) []RelationContent {
 }
 
 func (db *database) ElementDotScenario(name string) []RelationContent {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
 	id := db.getIDByName(name)
 	if id == "" {
 		return nil
@@ -382,6 +409,11 @@ func (db *database) ElementDotScenario(name string) []RelationContent {
 	for r, ct := range db.relationScenario {
 		if r.Element == id {
 			p, _ := db.objectIDName[r.Parent]
+			if p.Name == "" {
+				db.deleteAllRelationByID(r.Parent)
+				continue
+			}
+
 			content := RelationContent{
 				Relation: Relation{
 					Parent:  p.Name,

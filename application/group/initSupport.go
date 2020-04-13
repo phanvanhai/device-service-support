@@ -49,19 +49,16 @@ func (gr *LightGroup) provision(dev *models.Device) (continueFlag bool, err erro
 
 func (gr *LightGroup) updateDB(group models.Device) error {
 	relations := db.DB().GroupDotElement(group.Name)
+
 	needUpdate := false
-	j := 0
-	for _, r := range relations {
-		if db.DB().NameToID(r.Element) != "" {
-			relations[j] = r
-			j++
-		} else {
+	oldpp, ok := group.Protocols[common.RelationProtocolNameConst]
+	if !ok {
+		needUpdate = true
+	} else {
+		if len(oldpp) != len(relations) {
 			needUpdate = true
-			str := fmt.Sprintf("Can loai bo thong tin Device:%s trong Database", r.Element)
-			gr.lc.Debug(str)
 		}
 	}
-	relations = relations[:j]
 
 	if needUpdate {
 		str := fmt.Sprintf("Cap nhap lai Database cua Group:%s", group.Name)
