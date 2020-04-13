@@ -16,6 +16,8 @@ func (s *Sensor) EventCallback(async sdkModel.AsyncValues) error {
 	if err != nil {
 		return err
 	}
+
+	db.DB().SetConnectedStatus(dev.Name, true)
 	_, err = s.Connect(&dev)
 	if err != nil {
 		s.lc.Error(err.Error())
@@ -35,6 +37,8 @@ func (s *Sensor) EventCallback(async sdkModel.AsyncValues) error {
 	async.CommandValues = async.CommandValues[:j]
 
 	// send event
+	str := fmt.Sprintf("Pushed event to core data: %+v", async)
+	s.lc.Debug(str)
 	s.asyncCh <- &async
 
 	// update Realtime if have Realtime report

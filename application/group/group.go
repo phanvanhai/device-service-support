@@ -14,9 +14,7 @@ import (
 )
 
 func (gr *LightGroup) EventCallback(async sdkModel.AsyncValues) error {
-	// send event
-	gr.asyncCh <- &async
-
+	// group do not have event
 	return nil
 }
 

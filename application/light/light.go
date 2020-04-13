@@ -18,6 +18,8 @@ func (l *Light) EventCallback(async sdkModel.AsyncValues) error {
 	if err != nil {
 		return err
 	}
+
+	db.DB().SetConnectedStatus(dev.Name, true)
 	_, err = l.Connect(&dev)
 	if err != nil {
 		l.lc.Error(err.Error())
@@ -38,6 +40,8 @@ func (l *Light) EventCallback(async sdkModel.AsyncValues) error {
 	async.CommandValues = async.CommandValues[:j]
 
 	// send event
+	str := fmt.Sprintf("Pushed event to core data: %+v", async)
+	l.lc.Debug(str)
 	l.asyncCh <- &async
 
 	// update Realtime if have Realtime report
