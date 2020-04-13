@@ -1,0 +1,238 @@
+name: "LightGroup"
+manufacturer: "HUST-3I"
+model: "SL-03"
+labels:
+  - "Group Light OnOff, Dimming"
+  - "Group"
+
+deviceResources:
+  -
+    name: "LightGroup-OnOff"
+    description: "LightGroup On/Off."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123400"}
+    properties:
+      value:
+        { type: "Bool", readWrite: "W", defaultValue: "false" }
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }      
+  -
+    name: "LightGroup-Dimming"
+    description: "LightGroup Dimming."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123401"}
+    properties:
+      value:
+        { type: "Uint16", readWrite: "W", defaultValue: "0" }
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" } 
+  -
+    name: "LightGroup-OnOffSchedule"
+    description: "LightGroup OnOffSchedule."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123402"}
+    properties:
+      value:
+        { type: "String", readWrite: "RW", defaultValue: "" }        
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }    
+  -
+    name: "LightGroup-DimmingSchedule"
+    description: "LightGroup DimmingSchedule."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123403"}
+    properties:
+      value:
+        { type: "String", readWrite: "RW", defaultValue: "" }        
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }           
+  -
+    name: "LightGroup-Method"
+    description: "LightGroup Method = Put-Delete."    
+    properties:
+      value:
+        { type: "String", readWrite: "W", defaultValue: "" }
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }
+  -
+    name: "LightGroup-Device"
+    description: "LightGroup Device."
+    attributes:
+      # can sua AttZigbee trung voi Att Group of Device
+      { AttZigbee: "123407"}
+    properties:
+      value:
+        { type: "String", readWrite: "W", defaultValue: "" }
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }
+  -
+    name: "LightGroup-ListDevice"
+    description: "LightGroup List Device."    
+    properties:
+      value:
+        { type: "String", readWrite: "R", defaultValue: "" }
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }           
+  -
+    name: "LightGroup-Scenario"
+    description: "LightGroup Scenario."
+    properties:
+      value:
+        { type: "String", readWrite: "R", defaultValue: "" }
+        # String = []string vd: ["S1", "S2"]
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }   
+
+deviceCommands:
+  -
+    name: "OnOff"
+    set:
+      - { operation: "set", deviceResource: "LightGroup-OnOff"}     
+  -
+    name: "Dimming"
+    set:
+      - { operation: "set", deviceResource: "LightGroup-Dimming"}
+  -
+    name: "OnOffSchedule"
+    get:
+      - { operation: "get", deviceResource: "LightGroup-OnOffSchedule"}
+    set:
+      - { operation: "set", deviceResource: "LightGroup-OnOffSchedule"}      
+  -
+    name: "DimmingSchedule"
+    get:
+      - { operation: "get", deviceResource: "LightGroup-DimmingSchedule"}
+    set:
+      - { operation: "set", deviceResource: "LightGroup-DimmingSchedule"}
+  -
+    name: "ManagerDeivce"   
+    set:
+      - { operation: "set", deviceResource: "LightGroup-Method"}
+      - { operation: "set", deviceResource: "LightGroup-Device"}
+  -
+    name: "ListDevice"
+    get:
+      - { operation: "get", deviceResource: "LightGroup-ListDevice"}
+  -
+    name: "Scenario"
+    get:
+      - { operation: "get", deviceResource: "LightGroup-Scenario"}        
+
+coreCommands:
+  -
+    name: "OnOff"         
+    put:
+      path: "/api/v1/device/{deviceId}/OnOff"
+      parameterNames: ["LightGroup-OnOff"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+  -
+    name: "Dimming"
+    put:
+      path: "/api/v1/device/{deviceId}/Dimming"
+      parameterNames: ["LightGroup-Dimming"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []                
+  -
+    name: "OnOffSchedule"
+    get:
+      path: "/api/v1/device/{deviceId}/OnOffSchedule"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["LightGroup-OnOffSchedule"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+    put:
+      path: "/api/v1/device/{deviceId}/OnOffSchedule"
+      parameterNames: ["LightGroup-OnOffSchedule"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []           
+  -
+    name: "DimmingSchedule"
+    get:
+      path: "/api/v1/device/{deviceId}/DimmingSchedule"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["LightGroup-DimmingSchedule"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+    put:
+      path: "/api/v1/device/{deviceId}/DimmingSchedule"
+      parameterNames: ["LightGroup-DimmingSchedule"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []         
+  -
+    name: "ManagerDeivce"
+    put:
+      path: "/api/v1/device/{deviceId}/ManagerDeivce"
+      parameterNames: ["LightGroup-Method","LightGroup-Device"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+  -
+    name: "ListDevice"    
+    get:
+      path: "/api/v1/device/{deviceId}/ListDevice"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["LightGroup-ListDevice"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []                    
+  -
+    name: "Scenario"    
+    get:
+      path: "/api/v1/device/{deviceId}/Scenario"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["LightGroup-Scenario"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []          

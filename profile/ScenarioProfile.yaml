@@ -1,0 +1,74 @@
+name: "Scenario"
+manufacturer: "HUST-3I"
+model: "SL-04"
+labels:
+  - "Scenario"
+
+deviceResources:
+  -
+    name: "Scenario-Trigger"
+    description: "Scenario Trigger."
+    properties:
+      value:
+        { type: "Bool", readWrite: "W", defaultValue: "true" }
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }
+  -
+    name: "Scenario-Content"
+    description: "Scenario Content."
+    properties:
+      value:
+        { type: "String", readWrite: "RW", defaultValue: "" }
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }                     
+
+deviceCommands:
+  -
+    name: "Trigger"    
+    set:
+      - { operation: "set", deviceResource: "Scenario-Trigger"}
+  -
+    name: "Content"
+    get:
+      - { operation: "get", deviceResource: "Scenario-Content"}
+    set:
+      - { operation: "set", deviceResource: "Scenario-Content"}         
+
+coreCommands:
+  -
+    name: "Trigger"
+    put:
+      path: "/api/v1/device/{deviceId}/Trigger"
+      parameterNames: ["Scenario-Trigger"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: [] 
+  -
+    name: "Content"
+    get:
+      path: "/api/v1/device/{deviceId}/Content"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["Scenario-Content"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+    put:
+      path: "/api/v1/device/{deviceId}/Content"
+      parameterNames: ["Scenario-Content"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []              

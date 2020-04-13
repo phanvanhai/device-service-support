@@ -1,0 +1,101 @@
+name: "Gateway"
+manufacturer: "HUST-3I"
+model: "SL-00"
+labels:
+  - "Gateway"
+
+deviceResources:
+  -
+    name: "Gateway-OnOffRelay1"
+    description: "Gateway On/Off Relay."
+    properties:
+      value:
+        { type: "Bool", readWrite: "RW", defaultValue: "false" }
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }
+  -
+    name: "Gateway-Event"
+    description: "Gateway Event."
+    properties:
+      value:
+        { type: "String", readWrite: "R", defaultValue: "" }
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }
+  -
+    name: "Gateway-UpdateDeviceFirmware"
+    description: "Gateway Update DeviceFirmware."
+    properties:
+      value:
+        { type: "String", readWrite: "W", defaultValue: "" }
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }
+
+deviceCommands:
+  -
+    name: "OnOffRelay1"
+    get:
+      - { operation: "get", deviceResource: "Gateway-OnOffRelay1"}
+    set:
+      - { operation: "set", deviceResource: "Gateway-OnOffRelay1"}
+  -
+    name: "Event"
+    get:
+      - { operation: "get", deviceResource: "Gateway-Event"}
+  -
+    name: "UpdateDeviceFirmware"
+    get:
+      - { operation: "get", deviceResource: "Gateway-UpdateDeviceFirmware"}
+    set:
+      - { operation: "set", deviceResource: "Gateway-UpdateDeviceFirmware"}    
+
+coreCommands:
+  -
+    name: "OnOffRelay1"
+    get:
+      path: "/api/v1/device/{deviceId}/OnOffRelay1"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["Gateway-OnOffRelay1"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+    put:
+      path: "/api/v1/device/{deviceId}/OnOffRelay1"
+      parameterNames: ["Gateway-OnOffRelay1"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+  -
+    name: "Event"
+    get:
+      path: "/api/v1/device/{deviceId}/Event"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["Gateway-Event"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []          
+  -
+    name: "UpdateDeviceFirmware"
+    put:
+      path: "/api/v1/device/{deviceId}/UpdateDeviceFirmware"
+      parameterNames: ["Gateway-UpdateDeviceFirmware"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []          

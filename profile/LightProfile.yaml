@@ -1,0 +1,375 @@
+name: "Light"
+manufacturer: "HUST-3I"
+model: "SL-01"
+labels:
+  - "Light OnOff, Dimming"
+  - "Device"
+
+deviceResources:
+  -
+    name: "Light-OnOff"
+    description: "Light On/Off."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123400"}
+    properties:
+      value:
+        { type: "Bool", readWrite: "RW", defaultValue: "false" }
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }
+  -
+    name: "Light-Dimming"
+    description: "Light Dimming."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123401"}
+    properties:
+      value:
+        { type: "Uint16", readWrite: "RW", defaultValue: "0" }
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" } 
+  -
+    name: "Light-OnOffSchedule"
+    description: "Light OnOffSchedule."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123402"}
+    properties:
+      value:
+        { type: "String", readWrite: "RW", defaultValue: "" }
+        # String = [15]OnOffSchedule = [](Time-4B, Value-1B), vd: [0000060000, 0000173001]
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }    
+  -
+    name: "Light-DimmingSchedule"
+    description: "Light DimmingSchedule."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123403"}
+    properties:
+      value:
+        { type: "String", readWrite: "RW", defaultValue: "" }
+        # String = [15]OnOffSchedule = [](Time-4B, Value-2B), vd: [000006008020, 000017302080]
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }  
+  -
+    name: "Light-MeasurePower"
+    description: "Light MeasurePower."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123408"}
+    properties:
+      value:
+        { type: "Uint8", readWrite: "R", minimum: "0", maximum: "100", defaultValue: "0" }        
+      units:
+        { type: "String", readWrite: "R", defaultValue: "%" }         
+  -
+    name: "Light-ReportTime"
+    description: "Light ReportTime."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123404"}
+    properties:
+      value:
+        { type: "Uint16", readWrite: "RW", defaultValue: "0" }      
+      units:
+        { type: "String", readWrite: "R", defaultValue: "second" }
+  -
+    name: "Light-Realtime"
+    description: "Light Realtime."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123405"}
+    properties:
+      value:
+        { type: "Uint64", readWrite: "RW", defaultValue: "0" }      
+      units:
+        { type: "String", readWrite: "R", defaultValue: "second" }      
+  -
+    name: "Light-HistoricalEvent"
+    description: "Light HistoricalEvent."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123406"}
+    properties:
+      value:
+        { type: "String", readWrite: "R", defaultValue: "" }
+        # String = [10]Event = [](Time-4B + Message-50B)
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }      
+  -
+    name: "Light-Group"
+    description: "Light Group."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123407"}
+    properties:
+      value:
+        { type: "String", readWrite: "RW", defaultValue: "" }
+        # String = [50]NetworkID (Hex), vd: ["0100AABB", "0100AACC"]
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }    
+  -
+    name: "Light-Scenario"
+    description: "Light Scenario."
+    properties:
+      value:
+        { type: "String", readWrite: "R", defaultValue: "" }
+        # String = []string vd: ["S1", "S2"]
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }
+  -
+    name: "Light-Ping"
+    description: "Light Ping."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "120000"}
+    properties:
+      value:
+        { type: "String", readWrite: "R", defaultValue: "" }      
+      units:
+        { type: "String", readWrite: "R", defaultValue: "Ping" }       
+
+deviceCommands:
+  -
+    name: "OnOff"
+    get:
+      - { operation: "get", deviceResource: "Light-OnOff"}
+    set:      
+      - { operation: "set", deviceResource: "Light-OnOff"} 
+  -
+    name: "Dimming"
+    get:
+      - { operation: "get", deviceResource: "Light-Dimming"}
+    set:      
+      - { operation: "set", deviceResource: "Light-Dimming"}
+  -
+    name: "OnOffSchedule"
+    get:
+      - { operation: "get", deviceResource: "Light-OnOffSchedule"}
+    set:      
+      - { operation: "set", deviceResource: "Light-OnOffSchedule"} 
+  -
+    name: "DimmingSchedule"
+    get:
+      - { operation: "get", deviceResource: "Light-DimmingSchedule"}
+    set:      
+      - { operation: "set", deviceResource: "Light-DimmingSchedule"} 
+  -
+    name: "MeasurePower"
+    get:
+      - { operation: "get", deviceResource: "Light-MeasurePower"}
+  -
+    name: "ReportTime"
+    get:
+      - { operation: "get", deviceResource: "Light-ReportTime"}
+    set:      
+    - { operation: "set", deviceResource: "Light-ReportTime"}      
+  -
+    name: "Realtime"   
+    get:
+      - { operation: "get", deviceResource: "Light-Realtime"}
+    set:      
+      - { operation: "set", deviceResource: "Light-Realtime"}
+  -
+    name: "HistoricalEvent"
+    get:
+      - { operation: "get", deviceResource: "Light-HistoricalEvent"}
+  -
+    name: "Group"
+    get:
+      - { operation: "get", deviceResource: "Light-Group"}   
+    set:      
+      - { operation: "set", deviceResource: "Light-Group"}
+  -
+    name: "Scenario"
+    get:
+      - { operation: "get", deviceResource: "Light-Scenario"}
+
+coreCommands:
+  -
+    name: "OnOff"
+    get:
+      path: "/api/v1/device/{deviceId}/OnOff"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["Light-OnOff"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+    put:
+      path: "/api/v1/device/{deviceId}/OnOff"
+      parameterNames: ["Light-OnOff"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+  -
+    name: "Dimming"
+    get:
+      path: "/api/v1/device/{deviceId}/Dimming"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["Light-Dimming"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+    put:
+      path: "/api/v1/device/{deviceId}/Dimming"
+      parameterNames: ["Light-Dimming"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []                
+  -
+    name: "OnOffSchedule"
+    get:
+      path: "/api/v1/device/{deviceId}/OnOffSchedule"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["Light-OnOffSchedule"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+    put:
+      path: "/api/v1/device/{deviceId}/OnOffSchedule"
+      parameterNames: ["Light-OnOffSchedule"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []         
+  -
+    name: "DimmingSchedule"
+    get:
+      path: "/api/v1/device/{deviceId}/DimmingSchedule"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["Light-DimmingSchedule"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+    put:
+      path: "/api/v1/device/{deviceId}/DimmingSchedule"
+      parameterNames: ["Light-DimmingSchedule"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []                         
+  -
+    name: "MeasurePower"
+    get:
+      path: "/api/v1/device/{deviceId}/MeasurePower"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["Light-MeasurePower"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+  -
+    name: "ReportTime"
+    get:
+      path: "/api/v1/device/{deviceId}/ReportTime"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["Light-ReportTime"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+    put:
+      path: "/api/v1/device/{deviceId}/ReportTime"
+      parameterNames: ["Light-ReportTime"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []  
+  -
+    name: "Realtime"
+    put:
+      path: "/api/v1/device/{deviceId}/Realtime"
+      parameterNames: ["Light-Realtime"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+  -
+    name: "HistoricalEvent"
+    get:
+      path: "/api/v1/device/{deviceId}/HistoricalEvent"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["Light-HistoricalEvent"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []          
+  -
+    name: "Group"
+    # chi expose lenh GET, khong expose PUT
+    get:
+      path: "/api/v1/device/{deviceId}/Group"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["Light-Group"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []          
+  -
+    name: "Scenario"    
+    get:
+      path: "/api/v1/device/{deviceId}/Scenario"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["Light-Scenario"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []          

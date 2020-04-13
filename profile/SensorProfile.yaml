@@ -1,0 +1,219 @@
+name: "Sensor"
+manufacturer: "HUST-3I"
+model: "SL-02"
+labels:
+  - "Sensor Light"
+  - "Device"
+
+deviceResources:
+  -
+    name: "Sensor-OnOff"
+    description: "Sensor On/Off."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123400"}
+    properties:
+      value:
+        { type: "Bool", readWrite: "RW", defaultValue: "false" }
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }
+  -
+    name: "Sensor-MeasureLight"
+    description: "Sensor MeasureLight."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123421"}
+    properties:
+      value:
+        { type: "Uint16", readWrite: "R", defaultValue: "0" }
+      units:
+        { type: "String", readWrite: "R", defaultValue: "*0.01 lx" } 
+  -
+    name: "Sensor-ReportTime"
+    description: "Sensor ReportTime."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123404"}
+    properties:
+      value:
+        { type: "Uint16", readWrite: "RW", defaultValue: "0" }      
+      units:
+        { type: "String", readWrite: "R", defaultValue: "second" }
+  -
+    name: "Sensor-Realtime"
+    description: "Sensor Realtime."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123405"}
+    properties:
+      value:
+        { type: "Uint64", readWrite: "RW", defaultValue: "0" }      
+      units:
+        { type: "String", readWrite: "R", defaultValue: "second" }      
+  -
+    name: "Sensor-HistoricalEvent"
+    description: "Sensor HistoricalEvent."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "123406"}
+    properties:
+      value:
+        { type: "String", readWrite: "R", defaultValue: "" }
+        # String = [20]Event = [](Time-4B + Message-50B)
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }      
+  -
+    name: "Sensor-Scenario"
+    description: "Light Scenario."
+    properties:
+      value:
+        { type: "String", readWrite: "R", defaultValue: "" }
+        # String = []string vd: ["S1", "S2"]
+      units:
+        { type: "String", readWrite: "R", defaultValue: "" }
+  -
+    name: "Sensor-Ping"
+    description: "Sensor Ping."
+    attributes:
+      # can sua AttZigbee
+      { AttZigbee: "120000"}
+    properties:
+      value:
+        { type: "String", readWrite: "R", defaultValue: "" }      
+      units:
+        { type: "String", readWrite: "R", defaultValue: "Ping" }       
+
+
+deviceCommands:
+  -
+    name: "OnOff"
+    get:
+      - { operation: "get", deviceResource: "Sensor-OnOff"}
+    set:      
+      - { operation: "set", deviceResource: "Sensor-OnOff"}
+  -
+    name: "MeasurePower"
+    get:
+      - { operation: "get", deviceResource: "Sensor-MeasurePower"}
+  -
+    name: "ReportTime"
+    get:
+      - { operation: "get", deviceResource: "Sensor-ReportTime"}
+    set:      
+      - { operation: "set", deviceResource: "Sensor-ReportTime"}
+  -
+    name: "Realtime"   
+    get:
+      - { operation: "get", deviceResource: "Sensor-Realtime"}
+    set:      
+      - { operation: "set", deviceResource: "Sensor-Realtime"}
+  -
+    name: "HistoricalEvent"
+    get:
+      - { operation: "get", deviceResource: "Sensor-HistoricalEvent"}  
+  -
+    name: "Scenario"
+    get:
+      - { operation: "get", deviceResource: "Sensor-Scenario"}           
+
+coreCommands:
+  -
+    name: "OnOff"
+    get:
+      path: "/api/v1/device/{deviceId}/OnOff"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["Sensor-OnOff"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+    put:
+      path: "/api/v1/device/{deviceId}/OnOff"
+      parameterNames: ["Sensor-OnOff"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []                     
+  -
+    name: "MeasureLight"
+    get:
+      path: "/api/v1/device/{deviceId}/MeasureLight"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["Sensor-MeasureLight"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []       
+  -
+    name: "ReportTime"
+    get:
+      path: "/api/v1/device/{deviceId}/ReportTime"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["Sensor-ReportTime"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+    put:
+      path: "/api/v1/device/{deviceId}/ReportTime"
+      parameterNames: ["Sensor-ReportTime"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []  
+  -
+    name: "Realtime"
+    put:
+      path: "/api/v1/device/{deviceId}/Realtime"
+      parameterNames: ["Sensor-Realtime"]
+      responses:
+        -
+          code: "200"
+          description: ""
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []
+  -
+    name: "HistoricalEvent"
+    get:
+      path: "/api/v1/device/{deviceId}/HistoricalEvent"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["Sensor-HistoricalEvent"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []          
+  -
+    name: "Scenario"
+    get:
+      path: "/api/v1/device/{deviceId}/Scenario"
+      responses:
+        -
+          code: "200"
+          description: ""
+          expectedValues: ["Sensor-Scenario"]
+        -
+          code: "503"
+          description: "service unavailable"
+          expectedValues: []   
