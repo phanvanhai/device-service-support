@@ -7,7 +7,7 @@ import (
 
 	"github.com/phanvanhai/device-service-support/network/zigbee/cache"
 
-	sdkModel "github.com/phanvanhai/device-sdk-go/pkg/models"
+	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
 )
 
 type NetReading struct {

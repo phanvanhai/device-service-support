@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	sdkModel "github.com/phanvanhai/device-sdk-go/pkg/models"
+	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
 	"github.com/phanvanhai/device-service-support/support/db"
 
-	sdkCommand "github.com/phanvanhai/device-sdk-go"
+	sdkCommand "github.com/edgexfoundry/device-sdk-go"
 	appModels "github.com/phanvanhai/device-service-support/application/models"
 )
 

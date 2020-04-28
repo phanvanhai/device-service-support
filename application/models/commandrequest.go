@@ -1,8 +1,8 @@
 package models
 
 import (
-	sdkModel "github.com/phanvanhai/device-sdk-go/pkg/models"
-	sdk "github.com/phanvanhai/device-sdk-go/pkg/service"
+	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
+	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
 )
 
 const (

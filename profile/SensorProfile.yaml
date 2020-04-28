@@ -92,9 +92,9 @@ deviceCommands:
     set:      
       - { operation: "set", deviceResource: "Sensor-OnOff"}
   -
-    name: "MeasurePower"
+    name: "MeasureLight"
     get:
-      - { operation: "get", deviceResource: "Sensor-MeasurePower"}
+      - { operation: "get", deviceResource: "Sensor-MeasureLight"}
   -
     name: "ReportTime"
     get:

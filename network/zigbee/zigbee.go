@@ -17,10 +17,10 @@ import (
 
 	"github.com/phanvanhai/device-service-support/network/zigbee/models"
 
+	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
+	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	contract "github.com/edgexfoundry/go-mod-core-contracts/models"
-	sdkModel "github.com/phanvanhai/device-sdk-go/pkg/models"
-	sdk "github.com/phanvanhai/device-sdk-go/pkg/service"
 	"github.com/phanvanhai/device-service-support/support/pubsub"
 	"github.com/phanvanhai/device-service-support/transceiver"
 )

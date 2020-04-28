@@ -3,8 +3,8 @@ package group
 import (
 	"fmt"
 
+	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
-	sdk "github.com/phanvanhai/device-sdk-go/pkg/service"
 
 	appModels "github.com/phanvanhai/device-service-support/application/models"
 	"github.com/phanvanhai/device-service-support/support/common"

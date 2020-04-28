@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
-	sdk "github.com/phanvanhai/device-sdk-go/pkg/service"
 
 	"github.com/phanvanhai/device-service-support/support/common"
 	"github.com/phanvanhai/device-service-support/support/db"
