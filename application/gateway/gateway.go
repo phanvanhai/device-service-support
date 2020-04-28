@@ -3,8 +3,8 @@ package gateway
 import (
 	"fmt"
 
+	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
-	sdkModel "github.com/phanvanhai/device-sdk-go/pkg/models"
 )
 
 func (g *Gateway) EventCallback(async sdkModel.AsyncValues) error {

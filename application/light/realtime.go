@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	sdkModel "github.com/phanvanhai/device-sdk-go/pkg/models"
+	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
 	appModels "github.com/phanvanhai/device-service-support/application/models"
 )
 

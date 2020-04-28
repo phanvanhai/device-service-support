@@ -3,9 +3,9 @@ package light
 import (
 	"fmt"
 
+	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
+	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
-	sdkModel "github.com/phanvanhai/device-sdk-go/pkg/models"
-	sdk "github.com/phanvanhai/device-sdk-go/pkg/service"
 	appModels "github.com/phanvanhai/device-service-support/application/models"
 )
 
