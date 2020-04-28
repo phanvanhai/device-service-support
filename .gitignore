@@ -1,0 +1,10 @@
+debug
+*.exe
+.vscode
+go.sum
+coverage.out
+logs/
+VERSION
+*.crt
+*.key
+*~
