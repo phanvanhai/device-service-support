@@ -7,6 +7,7 @@ import (
 	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
 	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
+	appModels "github.com/phanvanhai/device-service-support/application/models"
 	db "github.com/phanvanhai/device-service-support/support/db"
 )
 
@@ -125,7 +126,7 @@ func (s *Sensor) HandleReadCommands(deviceName string, protocols map[string]mode
 		cmvl, err := s.nw.ReadCommands(deviceName, req)
 		if err != nil {
 			s.lc.Error(err.Error())
-			s.updateOpStateAndConnectdStatus(deviceName, false)
+			appModels.UpdateOpState(deviceName, false)
 			return nil, err
 		}
 		res[i] = cmvl[0]
@@ -158,7 +159,7 @@ func (s *Sensor) HandleWriteCommands(deviceName string, protocols map[string]mod
 		err := s.nw.WriteCommands(deviceName, req, param)
 		if err != nil {
 			s.lc.Error(err.Error())
-			s.updateOpStateAndConnectdStatus(deviceName, false)
+			appModels.UpdateOpState(deviceName, false)
 			return err
 		}
 	}

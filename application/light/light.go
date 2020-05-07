@@ -150,7 +150,7 @@ func (l *Light) HandleReadCommands(deviceName string, protocols map[string]model
 			cmvl, err := l.nw.ReadCommands(deviceName, req)
 			if err != nil {
 				l.lc.Error(err.Error())
-				l.updateOpStateAndConnectdStatus(deviceName, false)
+				appModels.UpdateOpState(deviceName, false)
 				return nil, err
 			}
 			res[i] = cmvl[0]
@@ -206,7 +206,7 @@ func (l *Light) HandleWriteCommands(deviceName string, protocols map[string]mode
 			err := l.nw.WriteCommands(deviceName, req, param)
 			if err != nil {
 				l.lc.Error(err.Error())
-				l.updateOpStateAndConnectdStatus(deviceName, false)
+				appModels.UpdateOpState(deviceName, false)
 				return err
 			}
 		}

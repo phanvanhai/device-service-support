@@ -27,7 +27,7 @@ func (gr *LightGroup) provision(dev *models.Device) (continueFlag bool, err erro
 		newdev, err := gr.nw.AddObject(dev)
 		if err != nil {
 			gr.lc.Error(err.Error())
-			continueFlag, err = gr.updateOpState(dev.Name, false)
+			continueFlag, err = appModels.UpdateOpState(dev.Name, false)
 			return continueFlag, err
 		}
 		if newdev != nil {
@@ -74,28 +74,4 @@ func (gr *LightGroup) updateDB(group models.Device) error {
 	}
 
 	return nil
-}
-
-func (gr *LightGroup) updateOpState(devName string, status bool) (bool, error) {
-	sv := sdk.RunningService()
-	dev, err := sv.GetDeviceByName(devName)
-	if err != nil {
-		return false, err
-	}
-	var notUpdate = true
-	if status == false {
-		if dev.OperatingState == models.Enabled {
-			dev.OperatingState = models.Disabled
-			gr.lc.Debug("cap nhap lai OpState = Disable")
-			return false, sv.UpdateDevice(dev)
-		}
-		return false, nil
-	}
-
-	if dev.OperatingState == models.Disabled {
-		dev.OperatingState = models.Enabled
-		gr.lc.Debug("cap nhap lai OpState = Enabled")
-		return false, sv.UpdateDevice(dev)
-	}
-	return notUpdate, nil
 }

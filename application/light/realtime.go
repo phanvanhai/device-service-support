@@ -39,7 +39,7 @@ func (l *Light) UpdateRealtime(devName string) error {
 	err = l.nw.WriteCommands(devName, reqs, param)
 	if err != nil {
 		l.lc.Error(err.Error())
-		l.updateOpStateAndConnectdStatus(devName, false)
+		appModels.UpdateOpState(devName, false)
 		return err
 	}
 	return nil

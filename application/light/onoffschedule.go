@@ -98,7 +98,7 @@ func (l *Light) OnOffScheduleWriteHandler(deviceName string, cmReq *sdkModel.Com
 	err = l.nw.WriteCommands(deviceName, req, param)
 	if err != nil {
 		l.lc.Error(err.Error())
-		l.updateOpStateAndConnectdStatus(deviceName, false)
+		appModels.UpdateOpState(deviceName, false)
 		return err
 	}
 

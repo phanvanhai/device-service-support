@@ -39,7 +39,7 @@ func (s *Sensor) UpdateRealtime(devName string) error {
 	err = s.nw.WriteCommands(devName, reqs, param)
 	if err != nil {
 		s.lc.Error(err.Error())
-		s.updateOpStateAndConnectdStatus(devName, false)
+		appModels.UpdateOpState(devName, false)
 		return err
 	}
 	return nil

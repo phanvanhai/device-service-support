@@ -64,7 +64,7 @@ func (l *Light) GroupWriteHandler(deviceName string, cmReq *sdkModel.CommandRequ
 	err = l.nw.WriteCommands(deviceName, req, param)
 	if err != nil {
 		l.lc.Error(err.Error())
-		l.updateOpStateAndConnectdStatus(deviceName, false)
+		appModels.UpdateOpState(deviceName, false)
 		return err
 	}
 	str := fmt.Sprintf("Cap nhap thanh cong danh sach Group cua Device:%s", deviceName)

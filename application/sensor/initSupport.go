@@ -5,6 +5,7 @@ import (
 
 	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
+	appModels "github.com/phanvanhai/device-service-support/application/models"
 	db "github.com/phanvanhai/device-service-support/support/db"
 )
 
@@ -24,7 +25,7 @@ func (s *Sensor) Provision(dev *models.Device) (continueFlag bool, err error) {
 		newdev, err := s.nw.AddObject(dev)
 		if err != nil {
 			s.lc.Error(err.Error())
-			continueFlag, err = s.updateOpStateAndConnectdStatus(dev.Name, false)
+			continueFlag, err = appModels.UpdateOpState(dev.Name, false)
 			return continueFlag, err
 		}
 		if newdev != nil {
@@ -35,31 +36,6 @@ func (s *Sensor) Provision(dev *models.Device) (continueFlag bool, err error) {
 	}
 
 	return true, nil
-}
-
-func (s *Sensor) updateOpStateAndConnectdStatus(devName string, status bool) (bool, error) {
-	sv := sdk.RunningService()
-	dev, err := sv.GetDeviceByName(devName)
-	if err != nil {
-		return false, err
-	}
-	var notUpdate = true
-	if status == false {
-		db.DB().SetConnectedStatus(devName, false)
-		if dev.OperatingState == models.Enabled {
-			dev.OperatingState = models.Disabled
-			s.lc.Debug("cap nhap lai OpState = Disable")
-			return false, sv.UpdateDevice(dev)
-		}
-		return false, nil
-	}
-	db.DB().SetConnectedStatus(dev.Name, true)
-	if dev.OperatingState == models.Disabled {
-		dev.OperatingState = models.Enabled
-		s.lc.Debug("cap nhap lai OpState = Enabled")
-		return false, sv.UpdateDevice(dev)
-	}
-	return notUpdate, nil
 }
 
 func (s *Sensor) Connect(dev *models.Device) (continueFlag bool, err error) {
@@ -75,10 +51,10 @@ func (s *Sensor) Connect(dev *models.Device) (continueFlag bool, err error) {
 	err = s.initDevice(dev.Name)
 	if err != nil {
 		s.lc.Error(err.Error())
-		continueFlag, err = s.updateOpStateAndConnectdStatus(dev.Name, false)
+		continueFlag, err = appModels.UpdateOpState(dev.Name, false)
 		return
 	}
-	continueFlag, err = s.updateOpStateAndConnectdStatus(dev.Name, true)
+	continueFlag, err = appModels.UpdateOpState(dev.Name, true)
 
 	return
 }
