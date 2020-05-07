@@ -16,8 +16,8 @@ const (
 
 const (
 	GroupLimit           = 50
-	OnOffScheduleLimit   = 15
-	DimmingScheduleLimit = 15
+	OnOffScheduleLimit   = 16
+	DimmingScheduleLimit = 16
 )
 
 const (
