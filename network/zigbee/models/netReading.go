@@ -8,6 +8,7 @@ import (
 	"github.com/phanvanhai/device-service-support/network/zigbee/cache"
 
 	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
+	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
 )
 
 type NetReading struct {
@@ -73,11 +74,18 @@ func (r NetReading) String() string {
 	return string(out)
 }
 
-func (r *NetReading) toCommandValue(name string) (cv *sdkModel.CommandValue, err error) {
-	resourceName, err := cache.Cache().DeviceResourceByNetResource(name, r.NetResource)
+func (r *NetReading) toCommandValue(devName string) (cv *sdkModel.CommandValue, err error) {
+	resourceName, err := cache.Cache().DeviceResourceByNetResource(devName, r.NetResource)
 	if err != nil {
 		return
 	}
+
+	svc := sdk.RunningService()
+	dr, ok := svc.DeviceResource(devName, resourceName, "")
+	if !ok {
+		return
+	}
+	r.NetValueType = sdkModel.ParseValueType(dr.Properties.Value.Type)
 
 	switch r.NetValueType {
 	case sdkModel.Binary:
