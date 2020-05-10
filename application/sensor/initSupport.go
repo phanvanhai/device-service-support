@@ -10,13 +10,13 @@ import (
 )
 
 func (s *Sensor) Provision(dev *models.Device) (continueFlag bool, err error) {
-	s.lc.Debug("tien trinh kiem tra cap phep")
+	s.lc.Debug("Bat dau tien trinh kiem tra cap phep")
+	defer s.lc.Debug("Ket thuc tien trinh kiem tra cap phep")
 	provision := s.nw.CheckExist(dev.Name)
 	opstate := dev.OperatingState
-	s.lc.Debug(fmt.Sprintf("provison=%t", provision))
 
-	if (provision == false && opstate == models.Disabled) || (provision == true && opstate == models.Enabled) {
-		s.lc.Debug(fmt.Sprintf("thoat tien trinh kiem tra cap phep vi: provision=%t & opstate=%s", provision, opstate))
+	if (provision == false && opstate == models.Disabled) || (provision == true) {
+		s.lc.Debug(fmt.Sprintf("Ket thuc tien trinh kiem tra cap phep vi: provision=%t & opstate=%s", provision, opstate))
 		return true, nil
 	}
 
@@ -32,36 +32,38 @@ func (s *Sensor) Provision(dev *models.Device) (continueFlag bool, err error) {
 			s.lc.Debug("cap nhap lai thong tin device sau khi da cap phep")
 			return false, sv.UpdateDevice(*newdev)
 		}
-		s.lc.Debug("newdev after provision = nil")
 	}
-
 	return true, nil
 }
 
-func (s *Sensor) Connect(dev *models.Device) (continueFlag bool, err error) {
-	s.lc.Debug("tien trinh kiem tra ket noi thiet bi")
+// ConnectToDevice : versionInDev = neu != nil -> yeu cau phai tien hanh dong bo cau hinh
+func (s *Sensor) ConnectAndUpdate(dev *models.Device, versionInDev *uint64) (err error) {
+	s.lc.Debug("Bat dau tien trinh kiem tra ket noi va dong bo thiet bi")
+	defer s.lc.Debug("Ket thuc tien trinh kiem tra ket noi va dong bo thiet bi")
+
 	opstate := dev.OperatingState
 	connected := db.DB().GetConnectedStatus(dev.Name)
 
+	// Hien tai khong can xu ly update version config, vi khong co config
 	if (connected == false && opstate == models.Disabled) || (connected == true && opstate == models.Enabled) {
-		s.lc.Debug(fmt.Sprintf("thoat tien trinh kiem tra ket noi thiet bi vi: connected=%t & opstate=%s", connected, opstate))
-		return true, nil
+		s.lc.Debug(fmt.Sprintf("Ket thuc tien trinh kiem tra ket noi thiet bi vi: connected=%t & opstate=%s", connected, opstate))
+		return nil
 	}
 
-	err = s.initDevice(dev.Name)
+	err = s.syscConfig(dev, versionInDev)
 	if err != nil {
-		s.lc.Error(err.Error())
-		continueFlag, err = appModels.UpdateOpState(dev.Name, false)
 		return
 	}
-	continueFlag, err = appModels.UpdateOpState(dev.Name, true)
-
+	s.lc.Debug(fmt.Sprintf("cau hinh da duoc dong bo"))
+	// dong bo cau hinh la buoc cuoi cung de ket luan: OpState co = true hay khong
+	// OpState chi = true khi da duoc cap phep, kiem tra ket noi, cap nhap cau hinh ma khong co bat ky loi gi
+	_, err = appModels.UpdateOpState(dev.Name, true)
 	return
 }
 
-func (s *Sensor) initDevice(devName string) error {
+func (s *Sensor) syscConfig(dev *models.Device, versionInDev *uint64) error {
 	// update Realtim
-	err := s.UpdateRealtime(devName)
+	err := appModels.UpdateRealtimeToDevice(s, dev.Name)
 	if err != nil {
 		return err
 	}

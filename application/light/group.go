@@ -1,21 +1,18 @@
 package light
 
 import (
-	"encoding/json"
 	"fmt"
 
 	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
-	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
 	appModels "github.com/phanvanhai/device-service-support/application/models"
+	"github.com/phanvanhai/device-service-support/support/common"
 	db "github.com/phanvanhai/device-service-support/support/db"
 )
 
 // update Groups latest
-func (l *Light) UpdateGroupToDevice(deviceName string) error {
-	reqs := make([]*sdkModel.CommandRequest, 1)
-	groups := db.DB().ElementDotGroups(deviceName)
-	netGroups := appModels.RelationGroupToNetValue(l.nw, groups, GroupLimit)
+func (l *Light) UpdateGroupToDevice(dev *models.Device) error {
+	deviceName := dev.Name
 
 	request, ok := appModels.NewCommandRequest(deviceName, GroupDr)
 	if !ok {
@@ -23,33 +20,25 @@ func (l *Light) UpdateGroupToDevice(deviceName string) error {
 		return fmt.Errorf("khong tim thay resource")
 	}
 
-	cmvlConverted := sdkModel.NewStringValue(GroupDr, 0, netGroups)
-	param := make([]*sdkModel.CommandValue, 0, 1)
-	param = append(param, cmvlConverted)
+	relations := db.DB().ElementDotGroups(deviceName)
+	groups := make([]string, len(relations))
+	for i, r := range relations {
+		groups[i] = r.Parent
+	}
 
-	reqs[0] = request
-	err := l.nw.WriteCommands(deviceName, reqs, param)
+	_, err := l.WriteGroupToDevice(dev, request, groups, GroupLimit)
 
 	return err
 }
 
-func (l *Light) GroupWriteHandler(deviceName string, cmReq *sdkModel.CommandRequest, groupStr string) error {
-	sv := sdk.RunningService()
-	dev, err := sv.GetDeviceByName(deviceName)
-	if err != nil {
-		l.lc.Error(err.Error())
-		return nil
+func (l *Light) WriteGroupToDevice(dev *models.Device, cmReq *sdkModel.CommandRequest, groups []string, grouplimit int) (bool, error) {
+	deviceName := dev.Name
+	needUpdate := false
+
+	if len(groups) > grouplimit {
+		return needUpdate, fmt.Errorf("loi vuot qua so luong nhom cho phep")
 	}
 
-	var groups []string
-	err = json.Unmarshal([]byte(groupStr), &groups)
-	if err != nil {
-		return err
-	}
-
-	if len(groups) > GroupLimit {
-		return fmt.Errorf("loi vuot qua so luong nhom cho phep")
-	}
 	reqConverted := appModels.GroupToNetValue(l.nw, groups, GroupLimit)
 
 	// tao CommandValue moi voi r.Value da duoc chuyen doi
@@ -61,11 +50,11 @@ func (l *Light) GroupWriteHandler(deviceName string, cmReq *sdkModel.CommandRequ
 	req[0] = cmReq
 
 	// Gui lenh
-	err = l.nw.WriteCommands(deviceName, req, param)
+	err := l.nw.WriteCommands(deviceName, req, param)
 	if err != nil {
 		l.lc.Error(err.Error())
 		appModels.UpdateOpState(deviceName, false)
-		return err
+		return needUpdate, err
 	}
 	str := fmt.Sprintf("Cap nhap thanh cong danh sach Group cua Device:%s", deviceName)
 	l.lc.Debug(str)
@@ -77,20 +66,12 @@ func (l *Light) GroupWriteHandler(deviceName string, cmReq *sdkModel.CommandRequ
 	newDimming, change2 := l.SyncDimmingScheduleDBByGroups(deviceName, groups)
 
 	if !change1 && !change2 {
-		return nil
+		return needUpdate, nil
 	}
 
-	pp, ok := dev.Protocols[ScheduleProtocolName]
-	if !ok {
-		pp = make(models.ProtocolProperties)
-	}
-	pp[OnOffSchedulePropertyName] = newOnOff
-	pp[DimmingSchedulePropertyName] = newDimming
-	err = sv.UpdateDevice(dev)
-	if err != nil {
-		l.lc.Error(err.Error())
-		return err
-	}
+	appModels.SetProperty(dev, common.ScheduleProtocolName, common.OnOffSchedulePropertyName, newOnOff)
+	appModels.SetProperty(dev, common.ScheduleProtocolName, common.DimmingSchedulePropertyName, newDimming)
+	needUpdate = true
 
-	return nil
+	return needUpdate, nil
 }

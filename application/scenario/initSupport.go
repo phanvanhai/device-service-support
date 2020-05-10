@@ -10,7 +10,7 @@ import (
 	"github.com/phanvanhai/device-service-support/support/db"
 )
 
-func (s *Scenario) updateDB(scenario models.Device) error {
+func (s *Scenario) ConnectAndUpdate(scenario *models.Device) error {
 	relations := db.DB().ScenarioDotElement(scenario.Name)
 
 	needUpdate := false
@@ -33,7 +33,7 @@ func (s *Scenario) updateDB(scenario models.Device) error {
 		}
 		scenario.Protocols[common.RelationProtocolNameConst] = pp
 		sv := sdk.RunningService()
-		return sv.UpdateDevice(scenario)
+		return sv.UpdateDevice(*scenario)
 	}
 
 	return nil

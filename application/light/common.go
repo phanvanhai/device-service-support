@@ -19,9 +19,3 @@ const (
 	OnOffScheduleLimit   = 16
 	DimmingScheduleLimit = 16
 )
-
-const (
-	ScheduleProtocolName        = "Schedule"
-	OnOffSchedulePropertyName   = "OnOff"
-	DimmingSchedulePropertyName = "Dimming"
-)

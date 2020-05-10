@@ -44,3 +44,29 @@ func UpdateOpState(deviceName string, status bool) (opStateIsReadyInDB bool, err
 	}
 	return
 }
+
+func SetProperty(dev *models.Device, protocolName string, propertyName string, value string) {
+	if dev == nil {
+		return
+	}
+
+	pp, ok := dev.Protocols[protocolName]
+	if !ok {
+		pp = make(models.ProtocolProperties)
+	}
+	pp[protocolName] = propertyName
+	dev.Protocols[protocolName] = pp
+}
+
+func GetProperty(dev *models.Device, protocolName string, propertyName string) (string, bool) {
+	if dev == nil {
+		return "", false
+	}
+
+	pp, ok := dev.Protocols[protocolName]
+	if !ok {
+		return "", false
+	}
+	str, ok := pp[protocolName]
+	return str, ok
+}

@@ -14,14 +14,8 @@ func (gr *LightGroup) UpdateOnOffScheduleToElement(groupName string, element str
 	sv := sdk.RunningService()
 	group, _ := sv.GetDeviceByName(groupName)
 
-	var schedulesStr string
-	pp, ok := group.Protocols[ScheduleProtocolName]
-	if ok {
-		schedulesStr, _ = pp[OnOffSchedulePropertyName]
-	}
-
-	schs := appModels.StringIDToOnOffSchedule(schedulesStr)
-	// khi gui toi Element, neu schudle = nil -> tao 1 schedule bieu dien gia tri nil
+	schs := appModels.OnOffScheduleGetFromDB(&group)
+	// khi gui toi Element, neu schedule = nil -> tao 1 schedule bieu dien gia tri nil
 	if len(schs) == 0 {
 		scheduleNil := appModels.EdgeOnOffSchedule{
 			OwnerName: groupName,
@@ -29,7 +23,7 @@ func (gr *LightGroup) UpdateOnOffScheduleToElement(groupName string, element str
 		schs = append(schs, scheduleNil)
 	}
 
-	schedulesStr = appModels.OnOffScheduleToStringName(schs)
+	schedulesStr := appModels.OnOffScheduleToStringName(schs)
 	str := fmt.Sprintf("gui OnOff schedule toi cac device. OnOff=%s", schedulesStr)
 	gr.lc.Debug(str)
 	return gr.WriteCommandByResource(groupName, OnOffScheduleDr, schedulesStr, element)
@@ -61,7 +55,7 @@ func (gr *LightGroup) OnOffScheduleWriteHandler(groupName string, onoffStr strin
 	}
 
 	// Gui lenh Unicast toi cac device
-	// khi gui toi Element, neu schudle = nil -> tao 1 schedule bieu dien gia tri nil
+	// khi gui toi Element, neu schedule = nil -> tao 1 schedule bieu dien gia tri nil
 	schs = appModels.StringIDToOnOffSchedule(strID)
 	if len(schs) == 0 {
 		scheduleNil := appModels.EdgeOnOffSchedule{

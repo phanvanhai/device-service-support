@@ -7,7 +7,6 @@ func (g *Gateway) getRelay() bool {
 }
 
 func (g *Gateway) setRelay(value bool) {
-	str := fmt.Sprintf("Set state of Relay 1 = %t", value)
-	g.lc.Info(str)
+	g.lc.Info(fmt.Sprintf("Set state of Relay 1 = %t", value))
 	g.relay1 = value
 }

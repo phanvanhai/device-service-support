@@ -20,7 +20,7 @@ func (s *Scenario) EventCallback(async sdkModel.AsyncValues) error {
 }
 
 func (s *Scenario) Initialize(dev *models.Device) error {
-	err := s.updateDB(*dev)
+	err := s.ConnectAndUpdate(dev)
 	return err
 }
 
@@ -64,7 +64,7 @@ func (s *Scenario) HandleReadCommands(scenarioName string, protocols map[string]
 			relations := db.DB().ScenarioDotElement(scenarioName)
 			elementsStr, err := json.Marshal(relations)
 			if err != nil {
-				elementsStr = []byte(err.Error())
+				return nil, err
 			}
 			newCmvl := sdkModel.NewStringValue(ContentDr, 0, string(elementsStr))
 			res[i] = newCmvl

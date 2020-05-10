@@ -8,10 +8,14 @@ import (
 	"fmt"
 	"strconv"
 
+	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
+	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
+	"github.com/edgexfoundry/go-mod-core-contracts/models"
+	"github.com/phanvanhai/device-service-support/support/common"
+
 	"github.com/phanvanhai/device-service-support/support/db"
 
 	nw "github.com/phanvanhai/device-service-support/network"
-	zigbeeConstants "github.com/phanvanhai/device-service-support/network/zigbee/cm"
 )
 
 type EdgeOnOffSchedule struct {
@@ -32,23 +36,94 @@ type netOnOffSchedule struct {
 // 			: nil = '[]'
 // Coord --> DS: base64('uint16uint32booluint16uint32bool')
 
-func convertNetToEdgeOnOffSchedule(nw nw.Network, net netOnOffSchedule, owner string) EdgeOnOffSchedule {
-	shifPrefix := zigbeeConstants.PrefixHexValueNetGroupID
-	result := EdgeOnOffSchedule{
-		Time:  net.Time,
-		Value: net.Value,
+// func convertNetToEdgeOnOffSchedule(nw nw.Network, net netOnOffSchedule, owner string) EdgeOnOffSchedule {
+// 	shifPrefix := zigbeeConstants.PrefixHexValueNetGroupID
+// 	result := EdgeOnOffSchedule{
+// 		Time:  net.Time,
+// 		Value: net.Value,
+// 	}
+// 	if net.OwnerAddress == 0x0000 {
+// 		result.OwnerName = owner
+// 	} else {
+// 		grInt := uint32(shifPrefix<<16) | uint32(net.OwnerAddress)
+// 		netID := fmt.Sprintf("%04X", grInt)
+// 		result.OwnerName = nw.DeviceNameByNetID(netID)
+// 	}
+// 	return result
+// }
+
+type OnOffSchedule interface {
+	WriteOnOffScheduleToDevice(deviceName string, cmReq *sdkModel.CommandRequest, schs []EdgeOnOffSchedule, onOffScheduleLimit int) error
+}
+
+func OnOffScheduleWriteHandler(scher OnOffSchedule, dev *models.Device, cmReq *sdkModel.CommandRequest, scheduleStr string, onOffScheduleLimit int) error {
+	deviceName := dev.Name
+	// chuyen doi noi dung string -> schedules
+	schedules := StringNameToOnOffSchedule(scheduleStr)
+
+	// loai bo nhung schedule loi (Owner = "")
+	j := 0
+	for _, s := range schedules {
+		if s.OwnerName != "" {
+			schedules[j] = s
+			j++
+		}
 	}
-	if net.OwnerAddress == 0x0000 {
-		result.OwnerName = owner
+	schedules = schedules[:j]
+
+	newSchs := combineOnOffSchedule(dev, schedules, onOffScheduleLimit)
+	if len(newSchs) > onOffScheduleLimit {
+		return fmt.Errorf("loi vuot qua so luong lap lich cho phep")
+	}
+	err := scher.WriteOnOffScheduleToDevice(deviceName, cmReq, newSchs, onOffScheduleLimit)
+	if err != nil {
+		return err
+	}
+
+	// Neu thanh cong, cap nhap lai thong tin trong Support Database
+	// truoc khi luu vao DB, can chuyen Name -> ID
+	newStr := OnOffScheduleToStringID(newSchs)
+	SetProperty(dev, common.ScheduleProtocolName, common.OnOffSchedulePropertyName, newStr)
+	sv := sdk.RunningService()
+	err = sv.UpdateDevice(*dev)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func combineOnOffSchedule(dev *models.Device, schs []EdgeOnOffSchedule, onOffScheduleLimit int) []EdgeOnOffSchedule {
+	deviceName := dev.Name
+	currentSchs := OnOffScheduleGetFromDB(dev)
+
+	var owner string
+	isDelete := false
+	if len(schs) == 0 {
+		owner = deviceName
+		isDelete = true
 	} else {
-		grInt := uint32(shifPrefix<<16) | uint32(net.OwnerAddress)
-		netID := fmt.Sprintf("%04X", grInt)
-		result.OwnerName = nw.DeviceNameByNetID(netID)
+		owner = schs[0].OwnerName
+		if CheckScheduleTime(schs[0].Time) == false {
+			isDelete = true
+		}
+	}
+
+	result := make([]EdgeOnOffSchedule, 0, onOffScheduleLimit)
+	// loai bo schedules cu (co OwnerName = owner) trong danh sach hien tai:
+	for _, s := range currentSchs {
+		if s.OwnerName != owner {
+			result = append(result, s)
+		}
+	}
+
+	// neu truong hop la them schedule:
+	if !isDelete {
+		result = append(result, schs...)
 	}
 	return result
 }
 
-func convertEdgeToNetOnOffSchedule(nw nw.Network, edge EdgeOnOffSchedule, owner string) netOnOffSchedule {
+func edgeToNetOnOffSchedule(nw nw.Network, edge EdgeOnOffSchedule, owner string) netOnOffSchedule {
 	result := netOnOffSchedule{
 		Time:  edge.Time,
 		Value: edge.Value,
@@ -82,51 +157,51 @@ func encodeNetOnOffSchedules(schedules []netOnOffSchedule, size int) string {
 	return base64.StdEncoding.EncodeToString(schedulesByte)
 }
 
-// kich thuoc bieu dien phai dung = size
-func decodeNetOnOffSchedules(scheduleStr string, size int) ([]netOnOffSchedule, error) {
-	decode, err := base64.StdEncoding.DecodeString(scheduleStr)
-	if err != nil {
-		return nil, err
-	}
+// // kich thuoc bieu dien phai dung = size
+// func decodeNetOnOffSchedules(scheduleStr string, size int) ([]netOnOffSchedule, error) {
+// 	decode, err := base64.StdEncoding.DecodeString(scheduleStr)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	sch := make([]netOnOffSchedule, size)
-	reader := bytes.NewBuffer(decode)
-	err = binary.Read(reader, binary.BigEndian, sch)
-	if err != nil {
-		return nil, err
-	}
+// 	sch := make([]netOnOffSchedule, size)
+// 	reader := bytes.NewBuffer(decode)
+// 	err = binary.Read(reader, binary.BigEndian, sch)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	result := make([]netOnOffSchedule, 0, size)
-	for i := 0; i < size; i++ {
-		if CheckScheduleTime(sch[i].Time) == false {
-			continue
-		}
-		result = append(result, sch[i])
-	}
-	return result, nil
-}
+// 	result := make([]netOnOffSchedule, 0, size)
+// 	for i := 0; i < size; i++ {
+// 		if CheckScheduleTime(sch[i].Time) == false {
+// 			continue
+// 		}
+// 		result = append(result, sch[i])
+// 	}
+// 	return result, nil
+// }
 
 func OnOffScheduleEdgeToNetValue(nw nw.Network, schedules []EdgeOnOffSchedule, owner string, size int) string {
 	netSchs := make([]netOnOffSchedule, 0, len(schedules))
 	for _, sch := range schedules {
-		netSch := convertEdgeToNetOnOffSchedule(nw, sch, owner)
+		netSch := edgeToNetOnOffSchedule(nw, sch, owner)
 		netSchs = append(netSchs, netSch)
 	}
 	return encodeNetOnOffSchedules(netSchs, size)
 }
 
-func NetValueToOnOffSchedule(nw nw.Network, value string, size int, owner string) ([]EdgeOnOffSchedule, error) {
-	netSchs, err := decodeNetOnOffSchedules(value, size)
-	if err != nil {
-		return nil, err
-	}
-	edgeSchs := make([]EdgeOnOffSchedule, 0, len(netSchs))
-	for _, sch := range netSchs {
-		eg := convertNetToEdgeOnOffSchedule(nw, sch, owner)
-		edgeSchs = append(edgeSchs, eg)
-	}
-	return edgeSchs, nil
-}
+// func NetValueToOnOffSchedule(nw nw.Network, value string, size int, owner string) ([]EdgeOnOffSchedule, error) {
+// 	netSchs, err := decodeNetOnOffSchedules(value, size)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	edgeSchs := make([]EdgeOnOffSchedule, 0, len(netSchs))
+// 	for _, sch := range netSchs {
+// 		eg := convertNetToEdgeOnOffSchedule(nw, sch, owner)
+// 		edgeSchs = append(edgeSchs, eg)
+// 	}
+// 	return edgeSchs, nil
+// }
 
 // String returns a JSON encoded string representation of the model
 func OnOffScheduleToStringName(schedules []EdgeOnOffSchedule) string {
@@ -174,4 +249,9 @@ func StringIDToOnOffSchedule(schedulesStr string) []EdgeOnOffSchedule {
 		schedules[i].OwnerName = db.DB().IDToName(schedules[i].OwnerName)
 	}
 	return schedules
+}
+
+func OnOffScheduleGetFromDB(dev *models.Device) []EdgeOnOffSchedule {
+	sch, _ := GetProperty(dev, common.ScheduleProtocolName, common.OnOffSchedulePropertyName)
+	return StringIDToOnOffSchedule(sch)
 }

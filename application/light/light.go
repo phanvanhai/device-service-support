@@ -19,34 +19,46 @@ func (l *Light) EventCallback(async sdkModel.AsyncValues) error {
 		return err
 	}
 
-	db.DB().SetConnectedStatus(dev.Name, true)
-	_, err = l.Connect(&dev)
-	if err != nil {
-		l.lc.Error(err.Error())
-	}
-
 	var hasRealtime = false
-
-	// loai bo report Realtime
+	var versionInDev *uint64
 	j := 0
 	for _, a := range async.CommandValues {
-		if a.DeviceResourceName != RealtimeDr {
-			async.CommandValues[j] = a
-			j++
-		} else {
+		// loai bo report Realtime
+		if a.DeviceResourceName == RealtimeDr {
 			hasRealtime = true
+			continue
 		}
+
+		// loai bo Ping & doc gia tri Version = Ping neu co
+		if a.DeviceResourceName == PingDr {
+			ver, err := a.Uint64Value()
+			if err == nil {
+				versionInDev = &ver
+				continue
+			}
+		}
+
+		async.CommandValues[j] = a
+		j++
 	}
 	async.CommandValues = async.CommandValues[:j]
 
 	// send event
-	str := fmt.Sprintf("Pushed event to core data: %+v", async)
-	l.lc.Debug(str)
-	l.asyncCh <- &async
+	if len(async.CommandValues) > 0 {
+		l.lc.Debug(fmt.Sprintf("Pushed event to core data: %+v", async))
+		l.asyncCh <- &async
+	}
+
+	db.DB().SetConnectedStatus(dev.Name, true)
+	err = l.ConnectAndUpdate(&dev, versionInDev)
+	if err != nil {
+		l.lc.Error(err.Error())
+		return err
+	}
 
 	// update Realtime if have Realtime report
 	if hasRealtime {
-		l.UpdateRealtime(async.DeviceName)
+		return appModels.UpdateRealtimeToDevice(l, async.DeviceName)
 	}
 
 	return nil
@@ -58,8 +70,7 @@ func (l *Light) Initialize(dev *models.Device) error {
 		return err
 	}
 
-	isContinue, err = l.Connect(dev)
-	return err
+	return l.ConnectAndUpdate(dev, nil)
 }
 
 func (l *Light) AddDeviceCallback(deviceName string, protocols map[string]models.ProtocolProperties, adminState models.AdminState) error {
@@ -94,15 +105,11 @@ func (l *Light) RemoveDeviceCallback(deviceName string, protocols map[string]mod
 }
 
 func (l *Light) HandleReadCommands(deviceName string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest) ([]*sdkModel.CommandValue, error) {
-	provision := l.nw.CheckExist(deviceName)
-	if provision == false {
-		l.lc.Error("thiet bi chua duoc cap phep")
-		return nil, fmt.Errorf("thiet bi chua duoc cap phep")
-	}
-	connected := db.DB().GetConnectedStatus(deviceName)
-	if connected == false {
-		l.lc.Error("thiet bi chua duoc ket noi")
-		return nil, fmt.Errorf("thiet bi chua duoc ket noi")
+	sv := sdk.RunningService()
+	dev, err := sv.GetDeviceByName(deviceName)
+	if err != nil {
+		l.lc.Error(err.Error())
+		return nil, err
 	}
 
 	res := make([]*sdkModel.CommandValue, len(reqs))
@@ -134,15 +141,15 @@ func (l *Light) HandleReadCommands(deviceName string, protocols map[string]model
 			res[i] = newCmvl
 		case OnOffScheduleDr:
 			// Lay thong tin tu Support Database va tao ket qua
-			onoffs := l.GetOnOffSchedulesFromDB(deviceName)
-			onoffsStr := appModels.OnOffScheduleToStringName(onoffs)
-			newCmvl := sdkModel.NewStringValue(OnOffScheduleDr, 0, string(onoffsStr))
+			schs := appModels.OnOffScheduleGetFromDB(&dev)
+			schsStr := appModels.OnOffScheduleToStringName(schs)
+			newCmvl := sdkModel.NewStringValue(OnOffScheduleDr, 0, schsStr)
 			res[i] = newCmvl
 		case DimmingScheduleDr:
 			// Lay thong tin tu Support Database va tao ket qua
-			dims := l.GetDimmingSchedulesFromDB(deviceName)
-			dimsStr := appModels.DimmingScheduleToStringName(dims)
-			newCmvl := sdkModel.NewStringValue(DimmingScheduleDr, 0, string(dimsStr))
+			schs := appModels.DimmingScheduleGetFromDB(&dev)
+			schsStr := appModels.DimmingScheduleToStringName(schs)
+			newCmvl := sdkModel.NewStringValue(DimmingScheduleDr, 0, schsStr)
 			res[i] = newCmvl
 		default:
 			// Gui lenh
@@ -160,15 +167,11 @@ func (l *Light) HandleReadCommands(deviceName string, protocols map[string]model
 }
 
 func (l *Light) HandleWriteCommands(deviceName string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest, params []*sdkModel.CommandValue) error {
-	provision := l.nw.CheckExist(deviceName)
-	if provision == false {
-		l.lc.Error("thiet bi chua duoc cap phep")
-		return fmt.Errorf("thiet bi chua duoc cap phep")
-	}
-	connected := db.DB().GetConnectedStatus(deviceName)
-	if connected == false {
-		l.lc.Error("thiet bi chua duoc ket noi")
-		return fmt.Errorf("thiet bi chua duoc ket noi")
+	sv := sdk.RunningService()
+	dev, err := sv.GetDeviceByName(deviceName)
+	if err != nil {
+		l.lc.Error(err.Error())
+		return err
 	}
 
 	for i, p := range params {
@@ -178,23 +181,62 @@ func (l *Light) HandleWriteCommands(deviceName string, protocols map[string]mode
 		case OnOffScheduleDr:
 			// chuyen doi noi dung r.Value
 			reqValue, _ := p.StringValue()
-			err := l.OnOffScheduleWriteHandler(deviceName, &reqs[i], reqValue)
+			err := appModels.OnOffScheduleWriteHandler(l, &dev, &reqs[i], reqValue, OnOffScheduleLimit)
 			if err != nil {
 				return err
 			}
+
+			err = sv.UpdateDevice(dev)
+			if err != nil {
+				// loi khi update vao DB -> tien hanh update version toi Device de tao dau hieu de update lan sau
+				l.lc.Debug("update version config to Device")
+				err = appModels.VersionConfigUpdate(l, dev, nil)
+				if err != nil {
+					l.lc.Error(err.Error())
+					return err
+				}
+			}
+			// neu qua trinh khong loi, khong can update version vi ca Gateway va Device da tu dong bo du lieu
 		case DimmingScheduleDr:
+			// chuyen doi noi dung r.Value
 			reqValue, _ := p.StringValue()
-			err := l.DimmingScheduleWriteHandler(deviceName, &reqs[i], reqValue)
+			err := appModels.DimmingScheduleWriteHandler(l, &dev, &reqs[i], reqValue, DimmingScheduleLimit)
 			if err != nil {
+				l.lc.Error(err.Error())
 				return err
 			}
+
+			err = sv.UpdateDevice(dev)
+			if err != nil {
+				// loi khi update vao DB -> tien hanh update version toi Device de tao dau hieu de update lan sau
+				l.lc.Debug("update version config to Device")
+				err = appModels.VersionConfigUpdate(l, dev, nil)
+				if err != nil {
+					l.lc.Error(err.Error())
+					return err
+				}
+			}
+			// neu qua trinh khong loi, khong can update version vi ca Gateway va Device da tu dong bo du lieu
 		case GroupDr:
 			// chuyen doi noi dung r.Value
 			reqValue, _ := p.StringValue()
-			err := l.GroupWriteHandler(deviceName, &reqs[i], reqValue)
+			err := appModels.GroupWriteHandler(l, &dev, &reqs[i], reqValue, GroupLimit)
 			if err != nil {
+				l.lc.Error(err.Error())
 				return err
 			}
+
+			err = sv.UpdateDevice(dev)
+			if err != nil {
+				// loi khi update vao DB -> tien hanh update version toi Device de tao dau hieu de update lan sau
+				l.lc.Debug("update version config to Device")
+				err = appModels.VersionConfigUpdate(l, dev, nil)
+				if err != nil {
+					l.lc.Error(err.Error())
+					return err
+				}
+			}
+			// neu qua trinh khong loi, khong can update version vi ca Gateway va Device da tu dong bo du lieu
 		default:
 			param := make([]*sdkModel.CommandValue, 1)
 			param[0] = p

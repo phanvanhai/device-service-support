@@ -14,14 +14,8 @@ func (gr *LightGroup) UpdateDimmingScheduleToElement(groupName string, element s
 	sv := sdk.RunningService()
 	group, _ := sv.GetDeviceByName(groupName)
 
-	var schedulesStr string
-	pp, ok := group.Protocols[ScheduleProtocolName]
-	if ok {
-		schedulesStr, _ = pp[DimmingSchedulePropertyName]
-	}
-
-	schs := appModels.StringIDToDimmingSchedule(schedulesStr)
-	// khi gui toi Element, neu schudle = nil -> tao 1 schedule bieu dien gia tri nil
+	schs := appModels.DimmingScheduleGetFromDB(&group)
+	// khi gui toi Element, neu schedule = nil -> tao 1 schedule bieu dien gia tri nil
 	if len(schs) == 0 {
 		scheduleNil := appModels.EdgeDimmingSchedule{
 			OwnerName: groupName,
@@ -29,7 +23,7 @@ func (gr *LightGroup) UpdateDimmingScheduleToElement(groupName string, element s
 		schs = append(schs, scheduleNil)
 	}
 
-	schedulesStr = appModels.DimmingScheduleToStringName(schs)
+	schedulesStr := appModels.DimmingScheduleToStringName(schs)
 	str := fmt.Sprintf("gui Dimming schedule toi cac device. Dimming=%s", schedulesStr)
 	gr.lc.Debug(str)
 	return gr.WriteCommandByResource(groupName, DimmingScheduleDr, schedulesStr, element)
@@ -61,7 +55,7 @@ func (gr *LightGroup) DimmingScheduleWriteHandler(groupName string, dimmingStr s
 	}
 
 	// Gui lenh Unicast toi cac device
-	// khi gui toi Element, neu schudle = nil -> tao 1 schedule bieu dien gia tri nil
+	// khi gui toi Element, neu schedule = nil -> tao 1 schedule bieu dien gia tri nil
 	schs = appModels.StringIDToDimmingSchedule(strID)
 	if len(schs) == 0 {
 		scheduleNil := appModels.EdgeDimmingSchedule{

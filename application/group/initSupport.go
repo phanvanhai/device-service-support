@@ -11,7 +11,7 @@ import (
 	"github.com/phanvanhai/device-service-support/support/db"
 )
 
-func (gr *LightGroup) provision(dev *models.Device) (continueFlag bool, err error) {
+func (gr *LightGroup) Provision(dev *models.Device) (continueFlag bool, err error) {
 	gr.lc.Debug("tien trinh cap phep")
 	provision := gr.nw.CheckExist(dev.Name)
 	opstate := dev.OperatingState
@@ -34,10 +34,8 @@ func (gr *LightGroup) provision(dev *models.Device) (continueFlag bool, err erro
 			gr.lc.Debug("cap nhap lai thong tin device sau khi da cap phep")
 
 			// Khoi tao Schedule trong Database
-			pp := make(models.ProtocolProperties)
-			pp[OnOffSchedulePropertyName] = appModels.ScheduleNilStr
-			pp[DimmingSchedulePropertyName] = appModels.ScheduleNilStr
-			newdev.Protocols[ScheduleProtocolName] = pp
+			appModels.SetProperty(newdev, common.ScheduleProtocolName, common.OnOffSchedulePropertyName, appModels.ScheduleNilStr)
+			appModels.SetProperty(newdev, common.ScheduleProtocolName, common.DimmingSchedulePropertyName, appModels.ScheduleNilStr)
 
 			return false, sv.UpdateDevice(*newdev)
 		}
@@ -47,7 +45,7 @@ func (gr *LightGroup) provision(dev *models.Device) (continueFlag bool, err erro
 	return true, nil
 }
 
-func (gr *LightGroup) updateDB(group models.Device) error {
+func (gr *LightGroup) ConnectAndUpdate(group *models.Device) error {
 	relations := db.DB().GroupDotElement(group.Name)
 
 	needUpdate := false
@@ -70,7 +68,7 @@ func (gr *LightGroup) updateDB(group models.Device) error {
 		}
 		group.Protocols[common.RelationProtocolNameConst] = pp
 		sv := sdk.RunningService()
-		return sv.UpdateDevice(group)
+		return sv.UpdateDevice(*group)
 	}
 
 	return nil

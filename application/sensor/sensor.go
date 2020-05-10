@@ -18,33 +18,46 @@ func (s *Sensor) EventCallback(async sdkModel.AsyncValues) error {
 		return err
 	}
 
-	db.DB().SetConnectedStatus(dev.Name, true)
-	_, err = s.Connect(&dev)
-	if err != nil {
-		s.lc.Error(err.Error())
-	}
-
 	var hasRealtime = false
-	// loai bo report Realtime
+	var versionInDev *uint64
 	j := 0
 	for _, a := range async.CommandValues {
-		if a.DeviceResourceName != RealtimeDr {
-			async.CommandValues[j] = a
-			j++
-		} else {
+		// loai bo report Realtime
+		if a.DeviceResourceName == RealtimeDr {
 			hasRealtime = true
+			continue
 		}
+
+		// loai bo Ping & doc gia tri Version = Ping neu co
+		if a.DeviceResourceName == PingDr {
+			ver, err := a.Uint64Value()
+			if err == nil {
+				versionInDev = &ver
+				continue
+			}
+		}
+
+		async.CommandValues[j] = a
+		j++
 	}
 	async.CommandValues = async.CommandValues[:j]
 
 	// send event
-	str := fmt.Sprintf("Pushed event to core data: %+v", async)
-	s.lc.Debug(str)
-	s.asyncCh <- &async
+	if len(async.CommandValues) > 0 {
+		s.lc.Debug(fmt.Sprintf("Pushed event to core data: %+v", async))
+		s.asyncCh <- &async
+	}
+
+	db.DB().SetConnectedStatus(dev.Name, true)
+	err = s.ConnectAndUpdate(&dev, versionInDev)
+	if err != nil {
+		s.lc.Error(err.Error())
+		return err
+	}
 
 	// update Realtime if have Realtime report
 	if hasRealtime {
-		s.UpdateRealtime(async.DeviceName)
+		return appModels.UpdateRealtimeToDevice(s, async.DeviceName)
 	}
 
 	return nil
@@ -56,8 +69,7 @@ func (s *Sensor) Initialize(dev *models.Device) error {
 		return err
 	}
 
-	isContinue, err = s.Connect(dev)
-	return err
+	return s.ConnectAndUpdate(dev, nil)
 }
 
 func (s *Sensor) AddDeviceCallback(deviceName string, protocols map[string]models.ProtocolProperties, adminState models.AdminState) error {

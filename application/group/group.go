@@ -19,12 +19,12 @@ func (gr *LightGroup) EventCallback(async sdkModel.AsyncValues) error {
 }
 
 func (gr *LightGroup) Initialize(dev *models.Device) error {
-	isContinue, err := gr.provision(dev)
+	isContinue, err := gr.Provision(dev)
 	if isContinue == false {
 		return err
 	}
 
-	err = gr.updateDB(*dev)
+	err = gr.ConnectAndUpdate(dev)
 	if err != nil {
 		gr.lc.Error(err.Error())
 		return err
@@ -103,25 +103,15 @@ func (gr *LightGroup) HandleReadCommands(groupName string, protocols map[string]
 			res[i] = newCmvl
 		case OnOffScheduleDr:
 			// Lay thong tin tu Support Database va tao ket qua
-			var schedulesStr string
-			pp, ok := group.Protocols[ScheduleProtocolName]
-			if ok {
-				schedulesStr, _ = pp[OnOffSchedulePropertyName]
-			}
-			schs := appModels.StringIDToOnOffSchedule(schedulesStr)
+			schs := appModels.OnOffScheduleGetFromDB(&group)
 			schNameStr := appModels.OnOffScheduleToStringName(schs)
 
 			newCmvl := sdkModel.NewStringValue(OnOffScheduleDr, 0, schNameStr)
 			res[i] = newCmvl
 		case DimmingScheduleDr:
 			// Lay thong tin tu Support Database va tao ket qua
-			var schedulesStr string
-			pp, ok := group.Protocols[ScheduleProtocolName]
-			if ok {
-				schedulesStr, _ = pp[DimmingSchedulePropertyName]
-			}
-			schs := appModels.StringIDToOnOffSchedule(schedulesStr)
-			schNameStr := appModels.OnOffScheduleToStringName(schs)
+			schs := appModels.DimmingScheduleGetFromDB(&group)
+			schNameStr := appModels.DimmingScheduleToStringName(schs)
 
 			newCmvl := sdkModel.NewStringValue(DimmingScheduleDr, 0, schNameStr)
 			res[i] = newCmvl
