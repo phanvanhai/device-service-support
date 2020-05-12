@@ -14,8 +14,8 @@ type Serial struct {
 }
 
 const (
-	PortSerialConfigName = "Transceiver_PortSerial"
-	BaudSerialConfigName = "Transceiver_BaudSerial"
+	PortSerialConfigName = "TransceiverPortSerial"
+	BaudSerialConfigName = "TransceiverBaudSerial"
 	DEFAULTBAUD          = 9600
 	TimePubDefault       = 30 // second
 	ChanSizeDefault      = 10
