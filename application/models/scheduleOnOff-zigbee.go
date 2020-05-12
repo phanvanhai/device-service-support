@@ -130,7 +130,7 @@ func edgeToNetOnOffSchedule(nw nw.Network, edge EdgeOnOffSchedule, owner string)
 	}
 
 	if edge.OwnerName == owner {
-		result.OwnerAddress = 0x0000
+		result.OwnerAddress = OwnerMe
 	} else {
 		netID := nw.NetIDByDeviceName(edge.OwnerName)
 		grInt64, _ := strconv.ParseUint(netID, 16, 32)

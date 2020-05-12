@@ -2,7 +2,6 @@ package cache
 
 import (
 	"fmt"
-	"math"
 	"sort"
 	"strconv"
 	"sync"
@@ -243,16 +242,17 @@ func (zc *zigbeeCache) DeleteDeviceCache(name string) {
 }
 
 func (zc *zigbeeCache) GenerateNetGroupID() (string, error) {
-	// Don't use group adrress = 0
+	// Don't use group adrress = 0x0000, 0xFFFF, 0xFFFE
+	maxAddr := 0xFFFD
 	var addr int
 	l := len(zc.groupAddress)
-	if l >= (math.MaxUint16 - 1) {
+	if l > maxAddr {
 		return "", fmt.Errorf("Loi: Da su dung het so luong nhom cho phep")
 	} else if l == 0 {
-		addr = 1
+		addr = 0x0001
 	} else {
 		sort.Ints(zc.groupAddress)
-		if zc.groupAddress[l-1] < math.MaxUint16 {
+		if zc.groupAddress[l-1] < maxAddr {
 			addr = zc.groupAddress[l-1] + 1
 		} else {
 			for i, v := range zc.groupAddress {
@@ -269,7 +269,6 @@ func (zc *zigbeeCache) GenerateNetGroupID() (string, error) {
 
 	zc.groupAddress = append(zc.groupAddress, addr)
 	addr32 := int32(cm.PrefixHexValueNetGroupID<<16 | addr)
-	// straddr := strconv.FormatInt(addr32, 16)
 	straddr := fmt.Sprintf("%08X", addr32)
 	return straddr, nil
 }

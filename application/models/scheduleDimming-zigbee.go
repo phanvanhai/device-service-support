@@ -113,7 +113,7 @@ func edgeToNetDimmingSchedule(nw nw.Network, edge EdgeDimmingSchedule, owner str
 	}
 
 	if edge.OwnerName == owner {
-		result.OwnerAddress = 0x0000
+		result.OwnerAddress = OwnerMe
 	} else {
 		netID := nw.NetIDByDeviceName(edge.OwnerName)
 		grInt64, _ := strconv.ParseUint(netID, 16, 32)

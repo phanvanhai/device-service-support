@@ -9,6 +9,7 @@ import (
 const (
 	ScheduleNilStr = "[]"
 	TimeError      = 0x00000000
+	OwnerMe        = 0xFFFE
 )
 
 func CheckScheduleTime(t uint32) bool {
