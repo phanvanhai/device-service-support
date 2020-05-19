@@ -99,7 +99,7 @@ func (l *Light) syncConfig(dev *models.Device) error {
 
 	l.lc.Debug("update on-off schedule of Device")
 	// get OnOff-Schedules latest
-	err = appModels.UpdateOnOffSchedulesConfigToDevice(l, l.nw, dev, OnOffScheduleDr, OnOffScheduleLimit)
+	err = appModels.UpdateOnOffSchedulesToDevice(l, l.nw, dev, OnOffScheduleDr, OnOffScheduleLimit)
 	if err != nil {
 		l.lc.Error(err.Error())
 		return err
@@ -107,7 +107,7 @@ func (l *Light) syncConfig(dev *models.Device) error {
 
 	l.lc.Debug("update dimming schedule to Device")
 	// get Dimming-Schedules latest
-	err = appModels.UpdateDimmingSchedulesConfigToDevice(l, l.nw, dev, DimmingScheduleDr, DimmingScheduleLimit)
+	err = appModels.UpdateDimmingSchedulesToDevice(l, l.nw, dev, DimmingScheduleDr, DimmingScheduleLimit)
 	if err != nil {
 		l.lc.Error(err.Error())
 		return err

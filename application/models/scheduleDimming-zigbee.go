@@ -39,7 +39,7 @@ func FillDimmingScheduleToDB(dev *models.Device, value string) {
 }
 
 func UpdateDimmingScheduleToElement(nw nw.Network, group *models.Device, resourceName string, element string) error {
-	schs := DimmingScheduleGetFromDB(group)
+	schs := dimmingScheduleGetFromDB(group)
 	// khi gui toi Element, neu schedule = nil -> tao 1 schedule bieu dien gia tri nil
 	if len(schs) == 0 {
 		scheduleNil := EdgeDimmingSchedule{
@@ -48,14 +48,14 @@ func UpdateDimmingScheduleToElement(nw nw.Network, group *models.Device, resourc
 		schs = append(schs, scheduleNil)
 	}
 
-	schedulesStr := DimmingScheduleToStringName(schs)
+	schedulesStr := dimmingScheduleToStringName(schs)
 	return WriteCommandToOtherDeviceByResource(nw, group.Name, resourceName, schedulesStr, element)
 }
 
 func DimmingScheduleWriteHandlerForGroup(nw nw.Network, group *models.Device, cmReq *sdkModel.CommandRequest, scheduleStr string) error {
 	groupName := group.Name
 
-	schs := StringNameToDimmingSchedule(scheduleStr)
+	schs := stringNameToDimmingSchedule(scheduleStr)
 	// fill OwnerName
 	for i := range schs {
 		schs[i].OwnerName = groupName
@@ -63,7 +63,7 @@ func DimmingScheduleWriteHandlerForGroup(nw nw.Network, group *models.Device, cm
 
 	// cap nhap vao DB cua Group
 	// truoc khi luu vao DB, can chuyen Name -> ID
-	strID := DimmingScheduleToStringID(schs)
+	strID := dimmingScheduleToStringID(schs)
 	SetProperty(group, common.ScheduleProtocolName, common.DimmingSchedulePropertyName, strID)
 	sv := sdk.RunningService()
 	err := sv.UpdateDevice(*group)
@@ -73,14 +73,14 @@ func DimmingScheduleWriteHandlerForGroup(nw nw.Network, group *models.Device, cm
 
 	// Gui lenh Unicast toi cac device
 	// khi gui toi Element, neu schedule = nil -> tao 1 schedule bieu dien gia tri nil
-	schs = StringIDToDimmingSchedule(strID)
+	schs = stringIDToDimmingSchedule(strID)
 	if len(schs) == 0 {
 		scheduleNil := EdgeDimmingSchedule{
 			OwnerName: groupName,
 			Time:      CreateScheuleTimeError()}
 		schs = append(schs, scheduleNil)
 	}
-	strName := DimmingScheduleToStringName(schs)
+	strName := dimmingScheduleToStringName(schs)
 
 	errInfos := GroupWriteUnicastCommandToAll(nw, groupName, cmReq.DeviceResourceName, strName)
 	for _, e := range errInfos {
@@ -92,7 +92,7 @@ func DimmingScheduleWriteHandlerForGroup(nw nw.Network, group *models.Device, cm
 	return nil
 }
 
-func UpdateDimmingSchedulesConfigToDevice(cm NormalWriteCommand, nw nw.Network, dev *models.Device, resourceName string, limit int) error {
+func UpdateDimmingSchedulesToDevice(cm NormalWriteCommand, nw nw.Network, dev *models.Device, resourceName string, limit int) error {
 	deviceName := dev.Name
 
 	request, ok := NewCommandRequest(deviceName, resourceName)
@@ -100,18 +100,18 @@ func UpdateDimmingSchedulesConfigToDevice(cm NormalWriteCommand, nw nw.Network, 
 		return fmt.Errorf("khong tim thay resource")
 	}
 
-	schs := DimmingScheduleGetFromDB(dev)
-	reqConverted := DimmingScheduleEdgeToNetValue(nw, schs, deviceName, limit)
+	schs := dimmingScheduleGetFromDB(dev)
+	reqConverted := dimmingScheduleEdgeToNetValue(nw, schs, deviceName, limit)
 	// tao CommandValue moi voi r.Value da duoc chuyen doi
 	cmvlConverted := sdkModel.NewStringValue(resourceName, 0, reqConverted)
 
 	return cm.NormalWriteCommand(dev, request, cmvlConverted)
 }
 
-func DimmingScheduleWriteHandler(cm NormalWriteCommand, nw nw.Network, dev *models.Device, cmReq *sdkModel.CommandRequest, scheduleStr string, limit int, groups []string) error {
+func DimmingScheduleWriteHandlerForDevice(cm NormalWriteCommand, nw nw.Network, dev *models.Device, cmReq *sdkModel.CommandRequest, scheduleStr string, limit int, groups []string) error {
 	deviceName := dev.Name
 	// chuyen doi noi dung string -> schedules
-	schedules := StringNameToDimmingSchedule(scheduleStr)
+	schedules := stringNameToDimmingSchedule(scheduleStr)
 
 	// loai bo nhung schedule loi (Owner = "")
 	j := 0
@@ -128,7 +128,7 @@ func DimmingScheduleWriteHandler(cm NormalWriteCommand, nw nw.Network, dev *mode
 		return fmt.Errorf("loi vuot qua so luong lap lich cho phep")
 	}
 
-	reqConverted := DimmingScheduleEdgeToNetValue(nw, newSchs, deviceName, limit)
+	reqConverted := dimmingScheduleEdgeToNetValue(nw, newSchs, deviceName, limit)
 	// tao CommandValue moi voi r.Value da duoc chuyen doi
 	cmvlConverted := sdkModel.NewStringValue(cmReq.DeviceResourceName, 0, reqConverted)
 
@@ -139,7 +139,7 @@ func DimmingScheduleWriteHandler(cm NormalWriteCommand, nw nw.Network, dev *mode
 
 	// Neu thanh cong, cap nhap lai thong tin trong Support Database
 	// truoc khi luu vao DB, can chuyen Name -> ID
-	newStr := DimmingScheduleToStringID(newSchs)
+	newStr := dimmingScheduleToStringID(newSchs)
 	SetProperty(dev, common.ScheduleProtocolName, common.DimmingSchedulePropertyName, newStr)
 
 	return nil
@@ -147,7 +147,7 @@ func DimmingScheduleWriteHandler(cm NormalWriteCommand, nw nw.Network, dev *mode
 
 func DimmingScheduleRead(dev *models.Device, resourceName string, groups []string) (cmvl *sdkModel.CommandValue) {
 	// Lay thong tin tu Support Database va tao ket qua
-	schs := DimmingScheduleGetFromDB(dev)
+	schs := dimmingScheduleGetFromDB(dev)
 
 	// combine with group:
 	j := 0
@@ -167,14 +167,14 @@ func DimmingScheduleRead(dev *models.Device, resourceName string, groups []strin
 	}
 	schs = schs[:j]
 
-	schsStr := DimmingScheduleToStringName(schs)
+	schsStr := dimmingScheduleToStringName(schs)
 	cmvl = sdkModel.NewStringValue(resourceName, 0, schsStr)
 	return
 }
 
 func combineDimmingSchedule(dev *models.Device, schs []EdgeDimmingSchedule, dimmingScheduleLimit int, groups []string) []EdgeDimmingSchedule {
 	deviceName := dev.Name
-	currentSchs := DimmingScheduleGetFromDB(dev)
+	currentSchs := dimmingScheduleGetFromDB(dev)
 
 	// combine with group:
 	j := 0
@@ -255,7 +255,7 @@ func encodeNetDimmingSchedules(schedules []netDimmingSchedule, size int) string 
 	return base64.StdEncoding.EncodeToString(schedulesByte)
 }
 
-func DimmingScheduleEdgeToNetValue(nw nw.Network, schedules []EdgeDimmingSchedule, owner string, size int) string {
+func dimmingScheduleEdgeToNetValue(nw nw.Network, schedules []EdgeDimmingSchedule, owner string, size int) string {
 	netSchs := make([]netDimmingSchedule, 0, len(schedules))
 	for _, sch := range schedules {
 		netSch := edgeToNetDimmingSchedule(nw, sch, owner)
@@ -265,7 +265,7 @@ func DimmingScheduleEdgeToNetValue(nw nw.Network, schedules []EdgeDimmingSchedul
 }
 
 // String returns a JSON encoded string representation of the model
-func DimmingScheduleToStringName(schedules []EdgeDimmingSchedule) string {
+func dimmingScheduleToStringName(schedules []EdgeDimmingSchedule) string {
 	out, err := json.Marshal(schedules)
 	if err != nil {
 		return ScheduleNilStr
@@ -273,7 +273,7 @@ func DimmingScheduleToStringName(schedules []EdgeDimmingSchedule) string {
 	return string(out)
 }
 
-func StringNameToDimmingSchedule(schedulesStr string) []EdgeDimmingSchedule {
+func stringNameToDimmingSchedule(schedulesStr string) []EdgeDimmingSchedule {
 	var schedules []EdgeDimmingSchedule
 	if schedulesStr == "" {
 		schedulesStr = ScheduleNilStr
@@ -286,7 +286,7 @@ func StringNameToDimmingSchedule(schedulesStr string) []EdgeDimmingSchedule {
 	return schedules
 }
 
-func DimmingScheduleToStringID(schedules []EdgeDimmingSchedule) string {
+func dimmingScheduleToStringID(schedules []EdgeDimmingSchedule) string {
 	for i := range schedules {
 		schedules[i].OwnerName = db.DB().NameToID(schedules[i].OwnerName)
 	}
@@ -297,7 +297,7 @@ func DimmingScheduleToStringID(schedules []EdgeDimmingSchedule) string {
 	return string(out)
 }
 
-func StringIDToDimmingSchedule(schedulesStr string) []EdgeDimmingSchedule {
+func stringIDToDimmingSchedule(schedulesStr string) []EdgeDimmingSchedule {
 	var schedules []EdgeDimmingSchedule
 	if schedulesStr == "" {
 		schedulesStr = ScheduleNilStr
@@ -312,7 +312,7 @@ func StringIDToDimmingSchedule(schedulesStr string) []EdgeDimmingSchedule {
 	return schedules
 }
 
-func DimmingScheduleGetFromDB(dev *models.Device) []EdgeDimmingSchedule {
+func dimmingScheduleGetFromDB(dev *models.Device) []EdgeDimmingSchedule {
 	sch, _ := GetProperty(dev, common.ScheduleProtocolName, common.DimmingSchedulePropertyName)
-	return StringIDToDimmingSchedule(sch)
+	return stringIDToDimmingSchedule(sch)
 }

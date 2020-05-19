@@ -97,19 +97,9 @@ func (gr *LightGroup) HandleReadCommands(groupName string, protocols map[string]
 			newCmvl := sdkModel.NewStringValue(ListDeviceDr, 0, string(devicesStr))
 			res[i] = newCmvl
 		case OnOffScheduleDr:
-			// Lay thong tin tu Support Database va tao ket qua
-			schs := appModels.OnOffScheduleGetFromDB(&group)
-			schNameStr := appModels.OnOffScheduleToStringName(schs)
-
-			newCmvl := sdkModel.NewStringValue(OnOffScheduleDr, 0, schNameStr)
-			res[i] = newCmvl
+			res[i] = appModels.OnOffScheduleReadHandler(&group, OnOffScheduleDr, nil)
 		case DimmingScheduleDr:
-			// Lay thong tin tu Support Database va tao ket qua
-			schs := appModels.DimmingScheduleGetFromDB(&group)
-			schNameStr := appModels.DimmingScheduleToStringName(schs)
-
-			newCmvl := sdkModel.NewStringValue(DimmingScheduleDr, 0, schNameStr)
-			res[i] = newCmvl
+			res[i] = appModels.DimmingScheduleRead(&group, DimmingScheduleDr, nil)
 		default:
 			strErr := fmt.Sprintf("Khong ho tro doc Resource: %s", r.DeviceResourceName)
 			gr.lc.Error(strErr)

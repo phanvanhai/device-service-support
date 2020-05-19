@@ -41,7 +41,7 @@ func FillOnOffScheduleToDB(dev *models.Device, value string) {
 }
 
 func UpdateOnOffScheduleToElement(nw nw.Network, group *models.Device, resourceName string, element string) error {
-	schs := OnOffScheduleGetFromDB(group)
+	schs := onOffScheduleGetFromDB(group)
 	// khi gui toi Element, neu schedule = nil -> tao 1 schedule bieu dien gia tri nil
 	if len(schs) == 0 {
 		scheduleNil := EdgeOnOffSchedule{
@@ -50,14 +50,14 @@ func UpdateOnOffScheduleToElement(nw nw.Network, group *models.Device, resourceN
 		schs = append(schs, scheduleNil)
 	}
 
-	schedulesStr := OnOffScheduleToStringName(schs)
+	schedulesStr := onOffScheduleToStringName(schs)
 	return WriteCommandToOtherDeviceByResource(nw, group.Name, resourceName, schedulesStr, element)
 }
 
 func OnOffScheduleWriteHandlerForGroup(nw nw.Network, group *models.Device, cmReq *sdkModel.CommandRequest, scheduleStr string) error {
 	groupName := group.Name
 
-	schs := StringNameToOnOffSchedule(scheduleStr)
+	schs := stringNameToOnOffSchedule(scheduleStr)
 	// fill OwnerName
 	for i := range schs {
 		schs[i].OwnerName = groupName
@@ -65,7 +65,7 @@ func OnOffScheduleWriteHandlerForGroup(nw nw.Network, group *models.Device, cmRe
 
 	// cap nhap vao DB cua Group
 	// truoc khi luu vao DB, can chuyen Name -> ID
-	strID := OnOffScheduleToStringID(schs)
+	strID := onOffScheduleToStringID(schs)
 	SetProperty(group, common.ScheduleProtocolName, common.OnOffSchedulePropertyName, strID)
 	sv := sdk.RunningService()
 	err := sv.UpdateDevice(*group)
@@ -75,14 +75,14 @@ func OnOffScheduleWriteHandlerForGroup(nw nw.Network, group *models.Device, cmRe
 
 	// Gui lenh Unicast toi cac device
 	// khi gui toi Element, neu schedule = nil -> tao 1 schedule bieu dien gia tri nil
-	schs = StringIDToOnOffSchedule(strID)
+	schs = stringIDToOnOffSchedule(strID)
 	if len(schs) == 0 {
 		scheduleNil := EdgeOnOffSchedule{
 			OwnerName: groupName,
 			Time:      CreateScheuleTimeError()}
 		schs = append(schs, scheduleNil)
 	}
-	strName := OnOffScheduleToStringName(schs)
+	strName := onOffScheduleToStringName(schs)
 
 	errInfos := GroupWriteUnicastCommandToAll(nw, groupName, cmReq.DeviceResourceName, strName)
 	for _, e := range errInfos {
@@ -94,7 +94,7 @@ func OnOffScheduleWriteHandlerForGroup(nw nw.Network, group *models.Device, cmRe
 	return nil
 }
 
-func UpdateOnOffSchedulesConfigToDevice(cm NormalWriteCommand, nw nw.Network, dev *models.Device, resourceName string, limit int) error {
+func UpdateOnOffSchedulesToDevice(cm NormalWriteCommand, nw nw.Network, dev *models.Device, resourceName string, limit int) error {
 	deviceName := dev.Name
 
 	request, ok := NewCommandRequest(deviceName, resourceName)
@@ -102,18 +102,18 @@ func UpdateOnOffSchedulesConfigToDevice(cm NormalWriteCommand, nw nw.Network, de
 		return fmt.Errorf("khong tim thay resource")
 	}
 
-	schs := OnOffScheduleGetFromDB(dev)
-	reqConverted := OnOffScheduleEdgeToNetValue(nw, schs, deviceName, limit)
+	schs := onOffScheduleGetFromDB(dev)
+	reqConverted := onOffScheduleEdgeToNetValue(nw, schs, deviceName, limit)
 	// tao CommandValue moi voi r.Value da duoc chuyen doi
 	cmvlConverted := sdkModel.NewStringValue(resourceName, 0, reqConverted)
 
 	return cm.NormalWriteCommand(dev, request, cmvlConverted)
 }
 
-func OnOffScheduleWriteHandler(cm NormalWriteCommand, nw nw.Network, dev *models.Device, cmReq *sdkModel.CommandRequest, scheduleStr string, limit int, groups []string) error {
+func OnOffScheduleWriteHandlerForDevice(cm NormalWriteCommand, nw nw.Network, dev *models.Device, cmReq *sdkModel.CommandRequest, scheduleStr string, limit int, groups []string) error {
 	deviceName := dev.Name
 	// chuyen doi noi dung string -> schedules
-	schedules := StringNameToOnOffSchedule(scheduleStr)
+	schedules := stringNameToOnOffSchedule(scheduleStr)
 
 	// loai bo nhung schedule loi (Owner = "")
 	j := 0
@@ -130,7 +130,7 @@ func OnOffScheduleWriteHandler(cm NormalWriteCommand, nw nw.Network, dev *models
 		return fmt.Errorf("loi vuot qua so luong lap lich cho phep")
 	}
 
-	reqConverted := OnOffScheduleEdgeToNetValue(nw, newSchs, deviceName, limit)
+	reqConverted := onOffScheduleEdgeToNetValue(nw, newSchs, deviceName, limit)
 	// tao CommandValue moi voi r.Value da duoc chuyen doi
 	cmvlConverted := sdkModel.NewStringValue(cmReq.DeviceResourceName, 0, reqConverted)
 
@@ -141,7 +141,7 @@ func OnOffScheduleWriteHandler(cm NormalWriteCommand, nw nw.Network, dev *models
 
 	// Neu thanh cong, cap nhap lai thong tin trong Support Database
 	// truoc khi luu vao DB, can chuyen Name -> ID
-	newStr := OnOffScheduleToStringID(newSchs)
+	newStr := onOffScheduleToStringID(newSchs)
 	SetProperty(dev, common.ScheduleProtocolName, common.OnOffSchedulePropertyName, newStr)
 
 	return nil
@@ -149,7 +149,7 @@ func OnOffScheduleWriteHandler(cm NormalWriteCommand, nw nw.Network, dev *models
 
 func OnOffScheduleReadHandler(dev *models.Device, resourceName string, groups []string) (cmvl *sdkModel.CommandValue) {
 	// Lay thong tin tu Support Database va tao ket qua
-	schs := OnOffScheduleGetFromDB(dev)
+	schs := onOffScheduleGetFromDB(dev)
 
 	// combine with group:
 	j := 0
@@ -169,14 +169,14 @@ func OnOffScheduleReadHandler(dev *models.Device, resourceName string, groups []
 	}
 	schs = schs[:j]
 
-	schsStr := OnOffScheduleToStringName(schs)
+	schsStr := onOffScheduleToStringName(schs)
 	cmvl = sdkModel.NewStringValue(resourceName, 0, schsStr)
 	return
 }
 
 func combineOnOffSchedule(dev *models.Device, schs []EdgeOnOffSchedule, onOffScheduleLimit int, groups []string) []EdgeOnOffSchedule {
 	deviceName := dev.Name
-	currentSchs := OnOffScheduleGetFromDB(dev)
+	currentSchs := onOffScheduleGetFromDB(dev)
 
 	// combine with group:
 	j := 0
@@ -257,7 +257,7 @@ func encodeNetOnOffSchedules(schedules []netOnOffSchedule, size int) string {
 	return base64.StdEncoding.EncodeToString(schedulesByte)
 }
 
-func OnOffScheduleEdgeToNetValue(nw nw.Network, schedules []EdgeOnOffSchedule, owner string, size int) string {
+func onOffScheduleEdgeToNetValue(nw nw.Network, schedules []EdgeOnOffSchedule, owner string, size int) string {
 	netSchs := make([]netOnOffSchedule, 0, len(schedules))
 	for _, sch := range schedules {
 		netSch := edgeToNetOnOffSchedule(nw, sch, owner)
@@ -267,7 +267,7 @@ func OnOffScheduleEdgeToNetValue(nw nw.Network, schedules []EdgeOnOffSchedule, o
 }
 
 // String returns a JSON encoded string representation of the model
-func OnOffScheduleToStringName(schedules []EdgeOnOffSchedule) string {
+func onOffScheduleToStringName(schedules []EdgeOnOffSchedule) string {
 	out, err := json.Marshal(schedules)
 	if err != nil {
 		return ScheduleNilStr
@@ -275,7 +275,7 @@ func OnOffScheduleToStringName(schedules []EdgeOnOffSchedule) string {
 	return string(out)
 }
 
-func StringNameToOnOffSchedule(schedulesStr string) []EdgeOnOffSchedule {
+func stringNameToOnOffSchedule(schedulesStr string) []EdgeOnOffSchedule {
 	var schedules []EdgeOnOffSchedule
 	if schedulesStr == "" {
 		schedulesStr = ScheduleNilStr
@@ -288,7 +288,7 @@ func StringNameToOnOffSchedule(schedulesStr string) []EdgeOnOffSchedule {
 	return schedules
 }
 
-func OnOffScheduleToStringID(schedules []EdgeOnOffSchedule) string {
+func onOffScheduleToStringID(schedules []EdgeOnOffSchedule) string {
 	for i := range schedules {
 		schedules[i].OwnerName = db.DB().NameToID(schedules[i].OwnerName)
 	}
@@ -299,7 +299,7 @@ func OnOffScheduleToStringID(schedules []EdgeOnOffSchedule) string {
 	return string(out)
 }
 
-func StringIDToOnOffSchedule(schedulesStr string) []EdgeOnOffSchedule {
+func stringIDToOnOffSchedule(schedulesStr string) []EdgeOnOffSchedule {
 	var schedules []EdgeOnOffSchedule
 	if schedulesStr == "" {
 		schedulesStr = ScheduleNilStr
@@ -314,7 +314,7 @@ func StringIDToOnOffSchedule(schedulesStr string) []EdgeOnOffSchedule {
 	return schedules
 }
 
-func OnOffScheduleGetFromDB(dev *models.Device) []EdgeOnOffSchedule {
+func onOffScheduleGetFromDB(dev *models.Device) []EdgeOnOffSchedule {
 	sch, _ := GetProperty(dev, common.ScheduleProtocolName, common.OnOffSchedulePropertyName)
-	return StringIDToOnOffSchedule(sch)
+	return stringIDToOnOffSchedule(sch)
 }

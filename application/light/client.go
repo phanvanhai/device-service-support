@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"time"
 
 	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
 	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
@@ -180,12 +179,10 @@ func (l *Light) HandleWriteCommands(deviceName string, protocols map[string]mode
 			groups := appModels.GetGroupList(dev.Name)
 			// chuyen doi noi dung r.Value
 			reqValue, _ := p.StringValue()
-			err := appModels.OnOffScheduleWriteHandler(l, l.nw, &dev, &reqs[i], reqValue, OnOffScheduleLimit, groups)
+			err := appModels.OnOffScheduleWriteHandlerForDevice(l, l.nw, &dev, &reqs[i], reqValue, OnOffScheduleLimit, groups)
 			if err != nil {
 				return err
 			}
-
-			time.Sleep(1 * time.Second)
 
 			// vi can luu vao DB -> thay doi DB -> update Version
 			currentVersion := appModels.GetVersionFromDB(dev)
@@ -207,13 +204,11 @@ func (l *Light) HandleWriteCommands(deviceName string, protocols map[string]mode
 			groups := appModels.GetGroupList(dev.Name)
 			// chuyen doi noi dung r.Value
 			reqValue, _ := p.StringValue()
-			err := appModels.DimmingScheduleWriteHandler(l, l.nw, &dev, &reqs[i], reqValue, DimmingScheduleLimit, groups)
+			err := appModels.DimmingScheduleWriteHandlerForDevice(l, l.nw, &dev, &reqs[i], reqValue, DimmingScheduleLimit, groups)
 			if err != nil {
 				l.lc.Error(err.Error())
 				return err
 			}
-
-			time.Sleep(1 * time.Second)
 
 			// vi can luu vao DB -> thay doi DB -> update Version
 			currentVersion := appModels.GetVersionFromDB(dev)
@@ -234,7 +229,7 @@ func (l *Light) HandleWriteCommands(deviceName string, protocols map[string]mode
 		case GroupDr:
 			// chuyen doi noi dung r.Value
 			reqValue, _ := p.StringValue()
-			err := appModels.GroupWriteHandler(l, l.nw, &dev, &reqs[i], reqValue, GroupLimit)
+			err := appModels.GroupListWriteHandler(l, l.nw, &dev, &reqs[i], reqValue, GroupLimit)
 			if err != nil {
 				l.lc.Error(err.Error())
 				return err

@@ -37,7 +37,7 @@ func UpdateGroupToDevice(cm NormalWriteCommand, nw nw.Network, dev *models.Devic
 		return fmt.Errorf("loi vuot qua so luong nhom cho phep")
 	}
 
-	reqConverted := GroupToNetValue(nw, groups, limit)
+	reqConverted := groupToNetValue(nw, groups, limit)
 	// tao CommandValue moi voi r.Value da duoc chuyen doi
 	cmvlConverted := sdkModel.NewStringValue(resourceName, 0, reqConverted)
 
@@ -46,7 +46,7 @@ func UpdateGroupToDevice(cm NormalWriteCommand, nw nw.Network, dev *models.Devic
 	return err
 }
 
-func GroupWriteHandler(cm NormalWriteCommand, nw nw.Network, dev *models.Device, cmReq *sdkModel.CommandRequest, groupStr string, limit int) error {
+func GroupListWriteHandler(cm NormalWriteCommand, nw nw.Network, dev *models.Device, cmReq *sdkModel.CommandRequest, groupStr string, limit int) error {
 	var groups []string
 	err := json.Unmarshal([]byte(groupStr), &groups)
 	if err != nil {
@@ -57,7 +57,7 @@ func GroupWriteHandler(cm NormalWriteCommand, nw nw.Network, dev *models.Device,
 		return fmt.Errorf("loi vuot qua so luong nhom cho phep")
 	}
 
-	reqConverted := GroupToNetValue(nw, groups, limit)
+	reqConverted := groupToNetValue(nw, groups, limit)
 	// tao CommandValue moi voi r.Value da duoc chuyen doi
 	cmvlConverted := sdkModel.NewStringValue(cmReq.DeviceResourceName, 0, reqConverted)
 
@@ -97,61 +97,13 @@ func encodeNetGroups(groups []uint16, size int) string {
 	return str
 }
 
-// input: ex 2 group: base64([]byte{0x12, 0x34, 0xAB, 0xCD}), kich thuoc bieu dien phai dung = size
-// output: ex 2 group: "01001234", "0100ABCD"
-func decodeNetGroups(value string, size int) ([]uint16, error) {
-	decoded, err := base64.StdEncoding.DecodeString(value)
-	if err != nil {
-		return nil, err
-	}
-
-	gr := make([]uint16, size)
-	reader := bytes.NewReader(decoded)
-	err = binary.Read(reader, binary.BigEndian, gr)
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]uint16, 0, size)
-	for i := 0; i < size; i++ {
-		if gr[i] == 0x0000 {
-			continue
-		}
-		result = append(result, gr[i])
-	}
-	return result, nil
-}
-
-func GroupToNetValue(nw nw.Network, groups []string, size int) string {
+func groupToNetValue(nw nw.Network, groups []string, size int) string {
 	netGrs := make([]uint16, 0, len(groups))
 	for _, gr := range groups {
 		netGroup := convertEdgeToNetGroup(nw, gr)
 		netGrs = append(netGrs, netGroup)
 	}
 	return encodeNetGroups(netGrs, size)
-}
-
-func NetValueToGroup(nw nw.Network, value string, size int) ([]string, error) {
-	netGroups, err := decodeNetGroups(value, size)
-	if err != nil {
-		return nil, err
-	}
-
-	edgeGrs := make([]string, 0, len(netGroups))
-	for _, ng := range netGroups {
-		eg := convertNetToEdgeGroup(nw, ng)
-		edgeGrs = append(edgeGrs, eg)
-	}
-
-	return edgeGrs, nil
-}
-
-func RelationGroupToNetValue(nw nw.Network, relations []db.RelationContent, size int) string {
-	groups := make([]string, 0, len(relations))
-	for _, relation := range relations {
-		groups = append(groups, relation.Parent)
-	}
-	return GroupToNetValue(nw, groups, size)
 }
 
 func GetGroupList(deviceName string) []string {
