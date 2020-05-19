@@ -41,8 +41,10 @@ const (
 	EventPublishTimeConfigName = "NetworkEventPublishTime"
 	EventBufferSizeConfigName  = "NetworkEventBufferSize"
 
-	RequestTimeoutDefault    = int64(30000) // milisecond
-	ResponseTimoutDefault    = int64(30000) // milisecond
-	RequestTimeoutConfigName = "NetworkRequestTimeout"
-	ResponseTimoutConfigName = "NetworkResponseTimeout"
+	RequestTimeoutDefault              = int64(30000)  // milisecond
+	ResponseTimoutDefault              = int64(30000)  // milisecond
+	ResponseAddObjectTimeoutDefault    = int64(100000) // milisecond
+	RequestTimeoutConfigName           = "NetworkRequestTimeout"
+	ResponseTimoutConfigName           = "NetworkResponseTimeout"
+	ResponseAddObjectTimeoutConfigName = "NetworkResponseAddObjectTimeout"
 )

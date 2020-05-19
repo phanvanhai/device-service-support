@@ -3,8 +3,6 @@ package light
 import (
 	"fmt"
 
-	"github.com/phanvanhai/device-service-support/support/common"
-
 	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
 	appModels "github.com/phanvanhai/device-service-support/application/models"
@@ -34,17 +32,18 @@ func (l *Light) Provision(dev *models.Device) (continueFlag bool, err error) {
 		if newdev != nil {
 			l.lc.Debug("cap nhap lai thong tin device sau khi da cap phep")
 
-			// Khoi tao Schedule trong Database
-			appModels.SetProperty(newdev, common.ScheduleProtocolName, common.OnOffSchedulePropertyName, appModels.ScheduleNilStr)
-			appModels.SetProperty(newdev, common.ScheduleProtocolName, common.DimmingSchedulePropertyName, appModels.ScheduleNilStr)
-			appModels.SetProperty(newdev, common.GeneralProtocolNameConst, common.VerisonConfigConst, appModels.VersionConfigInitStringValueConst)
+			// Khoi tao Schedule, VersionConfig trong Database
+			appModels.FillOnOffScheduleToDB(newdev, appModels.ScheduleNilStr)
+			appModels.FillDimmingScheduleToDB(newdev, appModels.ScheduleNilStr)
+			appModels.FillVerisonToDB(newdev, appModels.VersionConfigInitStringValueConst)
+
 			return false, sv.UpdateDevice(*newdev)
 		}
 	}
 	return true, nil
 }
 
-// ConnectToDevice : versionInDev = neu != nil -> yeu cau phai tien hanh dong bo cau hinh
+// ConnectAndUpdate : versionInDev : neu != nil -> yeu cau phai tien hanh dong bo cau hinh
 func (l *Light) ConnectAndUpdate(dev *models.Device, versionInDev *uint64) (err error) {
 	l.lc.Debug("Bat dau tien trinh kiem tra ket noi va dong bo thiet bi")
 	defer l.lc.Debug("Ket thuc tien trinh kiem tra ket noi va dong bo thiet bi")
@@ -60,7 +59,7 @@ func (l *Light) ConnectAndUpdate(dev *models.Device, versionInDev *uint64) (err 
 
 		// do something: ...
 
-		ver, err := l.ReadVersionConfigFromDevice(dev.Name)
+		ver, err := appModels.ReadVersionConfigFromDevice(l, dev, PingDr)
 		if err != nil {
 			l.lc.Error(fmt.Sprintf("Ket thuc tien trinh kiem tra ket noi va dong bo thiet bi vi:%s", err.Error()))
 			return err
@@ -68,8 +67,8 @@ func (l *Light) ConnectAndUpdate(dev *models.Device, versionInDev *uint64) (err 
 		versionInDev = &ver
 	}
 
-	if !appModels.VersionConfigCheckUpdate(*dev, *versionInDev) {
-		err = l.syscConfig(dev, versionInDev)
+	if appModels.GetVersionFromDB(*dev) != *versionInDev {
+		err = l.syncConfig(dev)
 		if err != nil {
 			return
 		}
@@ -81,18 +80,10 @@ func (l *Light) ConnectAndUpdate(dev *models.Device, versionInDev *uint64) (err 
 	return
 }
 
-func (l *Light) syscConfig(dev *models.Device, versionInDev *uint64) error {
-	l.lc.Debug("update on-off schedule of Device")
-	// get OnOff-Schedules latest
-	err := l.UpdateOnOffSchedulesConfigToDevice(dev)
-	if err != nil {
-		l.lc.Error(err.Error())
-		return err
-	}
-
-	l.lc.Debug("update dimming schedule to Device")
-	// get Dimming-Schedules latest
-	err = l.UpdateDimmingSchedulesConfigToDevice(dev)
+func (l *Light) syncConfig(dev *models.Device) error {
+	var err error
+	l.lc.Debug("update Realtime")
+	err = appModels.UpdateRealtimeToDevice(l, dev, RealtimeDr)
 	if err != nil {
 		l.lc.Error(err.Error())
 		return err
@@ -100,7 +91,23 @@ func (l *Light) syscConfig(dev *models.Device, versionInDev *uint64) error {
 
 	// update Groups latest
 	l.lc.Debug("update groups to Device")
-	err = l.UpdateGroupToDevice(dev)
+	err = appModels.UpdateGroupToDevice(l, l.nw, dev, GroupDr, GroupLimit)
+	if err != nil {
+		l.lc.Error(err.Error())
+		return err
+	}
+
+	l.lc.Debug("update on-off schedule of Device")
+	// get OnOff-Schedules latest
+	err = appModels.UpdateOnOffSchedulesConfigToDevice(l, l.nw, dev, OnOffScheduleDr, OnOffScheduleLimit)
+	if err != nil {
+		l.lc.Error(err.Error())
+		return err
+	}
+
+	l.lc.Debug("update dimming schedule to Device")
+	// get Dimming-Schedules latest
+	err = appModels.UpdateDimmingSchedulesConfigToDevice(l, l.nw, dev, DimmingScheduleDr, DimmingScheduleLimit)
 	if err != nil {
 		l.lc.Error(err.Error())
 		return err
@@ -108,11 +115,12 @@ func (l *Light) syscConfig(dev *models.Device, versionInDev *uint64) error {
 
 	// update versionconfig
 	l.lc.Debug("update version config to Device")
-	err = appModels.VersionConfigUpdate(l, *dev, versionInDev)
+	err = appModels.UpdateVersionConfigToDevice(l, dev, PingDr, appModels.GetVersionFromDB(*dev))
 	if err != nil {
 		l.lc.Error(err.Error())
 		return err
 	}
 
+	// vi cac buoc tren khong thay doi noi dung DB nen khong can update vao DB
 	return nil
 }

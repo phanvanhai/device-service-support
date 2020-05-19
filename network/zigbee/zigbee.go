@@ -26,8 +26,9 @@ import (
 )
 
 var (
-	requestTimeout  int64
-	responseTimeout int64
+	requestTimeout    int64
+	responseTimeout   int64
+	responseAddObject int64
 )
 
 func initialize(lc logger.LoggingClient, tc transceiver.Transceiver, config map[string]string) (*Zigbee, error) {
@@ -70,6 +71,15 @@ func initialize(lc logger.LoggingClient, tc transceiver.Transceiver, config map[
 		v, err := strconv.ParseInt(responseTimeoutStr, 10, 64)
 		if err == nil {
 			responseTimeout = v
+		}
+	}
+
+	responseAddObject = cm.ResponseAddObjectTimeoutDefault
+	responseAddObjectStr, ok := config[cm.ResponseAddObjectTimeoutConfigName]
+	if ok {
+		v, err := strconv.ParseInt(responseAddObjectStr, 10, 64)
+		if err == nil {
+			responseAddObject = v
 		}
 	}
 
@@ -137,7 +147,7 @@ func (zb *Zigbee) AddObject(newObject *contract.Device) (*contract.Device, error
 			return nil, err
 		}
 
-		rep, err := zb.sendRequestWithResponse(rawRequest, filterAddObject)
+		rep, err := zb.sendRequestWithResponse(rawRequest, filterAddObject, responseAddObject)
 		if err != nil {
 			return nil, err
 		}
@@ -242,7 +252,7 @@ func (zb *Zigbee) DeleteObject(name string, protocols map[string]contract.Protoc
 			return err
 		}
 
-		rep, err := zb.sendRequestWithResponse(rawRequest, filterDeleteObject)
+		rep, err := zb.sendRequestWithResponse(rawRequest, filterDeleteObject, responseTimeout)
 		if err != nil {
 			return err
 		}
@@ -295,10 +305,11 @@ func (zb *Zigbee) distributionEventRoutine() {
 	}
 }
 
-func (zb *Zigbee) sendRequestWithResponse(rawRequest []byte, responseFilter func(v interface{}) bool) (rep interface{}, err error) {
+func (zb *Zigbee) sendRequestWithResponse(rawRequest []byte, responseFilter func(v interface{}) bool, responseTimeout int64) (rep interface{}, err error) {
 	reper := zb.tc.Listen(responseFilter)
 	defer zb.tc.CancelListen(reper)
 
+	zb.logger.Debug(fmt.Sprintln("Send request:", string(rawRequest)))
 	err = zb.tc.Sender(rawRequest, requestTimeout)
 	if err != nil {
 		return nil, err
@@ -449,7 +460,7 @@ func (zb *Zigbee) ReadCommands(name string, reqs []*sdkModel.CommandRequest) ([]
 	switch t {
 	case common.GroupTypeConst:
 		filter := zb.filterCommand(name, cm.GetCommandCmdConst)
-		rep, err := zb.sendRequestWithResponse(rawRequest, filter)
+		rep, err := zb.sendRequestWithResponse(rawRequest, filter, responseTimeout)
 		if err != nil {
 			return nil, err
 		}
@@ -464,7 +475,7 @@ func (zb *Zigbee) ReadCommands(name string, reqs []*sdkModel.CommandRequest) ([]
 		}
 	case common.DeviceTypeConst:
 		filter := zb.filterCommand(name, cm.GetCommandCmdConst)
-		rep, err := zb.sendRequestWithResponse(rawRequest, filter)
+		rep, err := zb.sendRequestWithResponse(rawRequest, filter, responseTimeout)
 		if err != nil {
 			return nil, err
 		}
@@ -513,7 +524,7 @@ func (zb *Zigbee) WriteCommands(name string, reqs []*sdkModel.CommandRequest, pa
 	}
 
 	filter := zb.filterCommand(name, cm.PutCommandCmdConst)
-	rep, err := zb.sendRequestWithResponse(rawRequest, filter)
+	rep, err := zb.sendRequestWithResponse(rawRequest, filter, responseTimeout)
 	if err != nil {
 		return err
 	}

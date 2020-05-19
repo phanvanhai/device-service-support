@@ -17,7 +17,7 @@ func (gr *LightGroup) Provision(dev *models.Device) (continueFlag bool, err erro
 	opstate := dev.OperatingState
 	gr.lc.Debug(fmt.Sprintf("provison=%t", provision))
 
-	if (provision == false && opstate == models.Disabled) || (provision == true && opstate == models.Enabled) {
+	if (provision == false && opstate == models.Disabled) || (provision == true) {
 		gr.lc.Debug(fmt.Sprintf("thoat tien trinh cap phep vi: provision=%t & opstate=%s", provision, opstate))
 		return true, nil
 	}
@@ -34,23 +34,25 @@ func (gr *LightGroup) Provision(dev *models.Device) (continueFlag bool, err erro
 			gr.lc.Debug("cap nhap lai thong tin device sau khi da cap phep")
 
 			// Khoi tao Schedule trong Database
-			appModels.SetProperty(newdev, common.ScheduleProtocolName, common.OnOffSchedulePropertyName, appModels.ScheduleNilStr)
-			appModels.SetProperty(newdev, common.ScheduleProtocolName, common.DimmingSchedulePropertyName, appModels.ScheduleNilStr)
+			appModels.FillOnOffScheduleToDB(newdev, appModels.ScheduleNilStr)
+			appModels.FillDimmingScheduleToDB(newdev, appModels.ScheduleNilStr)
 
 			return false, sv.UpdateDevice(*newdev)
 		}
-		gr.lc.Debug("newdev after provision = nil")
 	}
-
 	return true, nil
 }
 
+// ConnectAndUpdate luon duoc thuc hien, khong quan tam den OpState
 func (gr *LightGroup) ConnectAndUpdate(group *models.Device) error {
+	gr.lc.Debug("Bat dau tien trinh kiem tra ket dong bo nhom")
+	defer gr.lc.Debug("Ket thuc tien trinh kiem tra ket dong bo nhom")
+
 	relations := db.DB().GroupDotElement(group.Name)
 
 	needUpdate := false
 	oldpp, ok := group.Protocols[common.RelationProtocolNameConst]
-	if !ok {
+	if !ok && (len(relations) != 0) {
 		needUpdate = true
 	} else {
 		if len(oldpp) != len(relations) {
@@ -59,8 +61,7 @@ func (gr *LightGroup) ConnectAndUpdate(group *models.Device) error {
 	}
 
 	if needUpdate {
-		str := fmt.Sprintf("Cap nhap lai Database cua Group:%s", group.Name)
-		gr.lc.Debug(str)
+		gr.lc.Debug(fmt.Sprintf("Cap nhap lai Database cua Group:%s", group.Name))
 		pp := make(models.ProtocolProperties)
 		for _, r := range relations {
 			id := db.DB().NameToID(r.Element)

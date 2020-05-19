@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strconv"
 
+	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
+	"github.com/edgexfoundry/go-mod-core-contracts/models"
 	"github.com/phanvanhai/device-service-support/support/db"
 
 	nw "github.com/phanvanhai/device-service-support/network"
@@ -16,6 +18,53 @@ import (
 
 // Cloud <-> DS: '[1234,4321]'
 // Coord --> DS: base64('uint16uint16')
+
+// update Groups latest
+func UpdateGroupToDevice(cm NormalWriteCommand, nw nw.Network, dev *models.Device, resourceName string, limit int) error {
+	deviceName := dev.Name
+
+	request, ok := NewCommandRequest(deviceName, resourceName)
+	if !ok {
+		return fmt.Errorf("khong tim thay resource")
+	}
+
+	relations := db.DB().ElementDotGroups(deviceName)
+	groups := make([]string, len(relations))
+	for i, r := range relations {
+		groups[i] = r.Parent
+	}
+	if len(groups) > limit {
+		return fmt.Errorf("loi vuot qua so luong nhom cho phep")
+	}
+
+	reqConverted := GroupToNetValue(nw, groups, limit)
+	// tao CommandValue moi voi r.Value da duoc chuyen doi
+	cmvlConverted := sdkModel.NewStringValue(resourceName, 0, reqConverted)
+
+	err := cm.NormalWriteCommand(dev, request, cmvlConverted)
+
+	return err
+}
+
+func GroupWriteHandler(cm NormalWriteCommand, nw nw.Network, dev *models.Device, cmReq *sdkModel.CommandRequest, groupStr string, limit int) error {
+	var groups []string
+	err := json.Unmarshal([]byte(groupStr), &groups)
+	if err != nil {
+		return err
+	}
+
+	if len(groups) > limit {
+		return fmt.Errorf("loi vuot qua so luong nhom cho phep")
+	}
+
+	reqConverted := GroupToNetValue(nw, groups, limit)
+	// tao CommandValue moi voi r.Value da duoc chuyen doi
+	cmvlConverted := sdkModel.NewStringValue(cmReq.DeviceResourceName, 0, reqConverted)
+
+	err = cm.NormalWriteCommand(dev, cmReq, cmvlConverted)
+
+	return err
+}
 
 func convertEdgeToNetGroup(nw nw.Network, name string) uint16 {
 	netID := nw.NetIDByDeviceName(name)
@@ -105,16 +154,11 @@ func RelationGroupToNetValue(nw nw.Network, relations []db.RelationContent, size
 	return GroupToNetValue(nw, groups, size)
 }
 
-// String returns a JSON encoded string representation of the model
-func RelationGroupToString(relations []db.RelationContent) (string, error) {
+func GetGroupList(deviceName string) []string {
+	relations := db.DB().ElementDotGroups(deviceName)
 	groups := make([]string, 0, len(relations))
 	for _, relation := range relations {
 		groups = append(groups, relation.Parent)
 	}
-
-	out, err := json.Marshal(groups)
-	if err != nil {
-		return "", err
-	}
-	return string(out), nil
+	return groups
 }

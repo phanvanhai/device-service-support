@@ -1,48 +1,56 @@
 package models
 
 import (
+	"fmt"
 	"strconv"
 
-	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
+	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
 	"github.com/phanvanhai/device-service-support/support/common"
 )
 
 const VersionConfigInitStringValueConst = "1"
 
-type VersionConfig interface {
-	// UpdateVersionConfigToDevice update version config to device
-	UpdateVersionConfigToDevice(deviceName string, versionConfig uint64) error
-	// ReadVersionConfigFromDevice read current version config to device
-	ReadVersionConfigFromDevice(deviceName string) (uint64, error)
-}
-
 func VersionConfigCheckUpdate(dev models.Device, versionInDev uint64) bool {
-	verInDB := getVersionFromDB(dev)
+	verInDB := GetVersionFromDB(dev)
 	return (verInDB == versionInDev)
 }
 
-func VersionConfigUpdate(versioner VersionConfig, dev models.Device, currentVersionInDev *uint64) error {
-	currentVersionInDb := getVersionFromDB(dev)
-	if currentVersionInDev == nil {
-		currentVersionInDev = &currentVersionInDb
+func ReadVersionConfigFromDevice(cm NormalReadCommand, dev *models.Device, resourceName string) (uint64, error) {
+	request, ok := NewCommandRequest(dev.Name, resourceName)
+	if !ok {
+		return 0, fmt.Errorf("khong tim thay resource")
 	}
-	newVersion := generateVersion(currentVersionInDb, *currentVersionInDev)
-	err := versioner.UpdateVersionConfigToDevice(dev.Name, newVersion)
+	cmvl, err := cm.NormalReadCommand(dev, request)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return updateVersionConfigToDB(dev, newVersion)
+	return cmvl[0].Uint64Value()
 }
 
-func generateVersion(ver1 uint64, ver2 uint64) uint64 {
+func UpdateVersionConfigToDevice(cm NormalWriteCommand, dev *models.Device, resourceName string, versionInDev uint64) error {
+	request, ok := NewCommandRequest(dev.Name, resourceName)
+	if !ok {
+		return fmt.Errorf("khong tim thay resource")
+	}
+
+	cmvlConverted, _ := sdkModel.NewUint64Value(resourceName, 0, versionInDev)
+
+	return cm.NormalWriteCommand(dev, request, cmvlConverted)
+}
+
+func FillVerisonToDB(dev *models.Device, value string) {
+	SetProperty(dev, common.GeneralProtocolNameConst, common.VerisonConfigConst, value)
+}
+
+func GenerateNewVersion(ver1 uint64, ver2 uint64) uint64 {
 	max := ver1
 	if ver2 > max {
 		max = ver2
 	}
 	for {
 		max++
-		if max != ver1 && max != ver2 {
+		if max != ver1 && max != ver2 && max != 0 {
 			break
 		}
 	}
@@ -50,24 +58,9 @@ func generateVersion(ver1 uint64, ver2 uint64) uint64 {
 	return max
 }
 
-func updateVersionConfigToDB(dev models.Device, version uint64) error {
-	pp, ok := dev.Protocols[common.GeneralProtocolNameConst]
-	if !ok {
-		pp = make(models.ProtocolProperties)
-	}
-	pp[common.VerisonConfigConst] = strconv.FormatUint(version, 10)
-
-	sv := sdk.RunningService()
-	return sv.UpdateDevice(dev)
-}
-
-func getVersionFromDB(dev models.Device) (ver uint64) {
+func GetVersionFromDB(dev models.Device) (ver uint64) {
 	ver, _ = strconv.ParseUint(VersionConfigInitStringValueConst, 10, 64)
-	pp, ok := dev.Protocols[common.GeneralProtocolNameConst]
-	if !ok {
-		return
-	}
-	verStr, ok := pp[common.VerisonConfigConst]
+	verStr, ok := GetProperty(&dev, common.GeneralProtocolNameConst, common.VerisonConfigConst)
 	if !ok {
 		return
 	}

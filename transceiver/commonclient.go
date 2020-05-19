@@ -7,13 +7,6 @@ import (
 	"github.com/phanvanhai/device-service-support/transceiver/serial"
 )
 
-type Frame struct {
-	Preambel byte
-	Length   uint16
-	Payload  []byte
-	Crc      byte
-}
-
 const (
 	SERIAL = "serial"
 )

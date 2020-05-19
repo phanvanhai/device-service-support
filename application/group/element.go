@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
-	"github.com/edgexfoundry/go-mod-core-contracts/models"
 
+	appModels "github.com/phanvanhai/device-service-support/application/models"
 	"github.com/phanvanhai/device-service-support/support/common"
 	"github.com/phanvanhai/device-service-support/support/db"
 )
@@ -51,53 +51,49 @@ func (gr *LightGroup) addElement(groupName string, elementName string) error {
 		return err
 	}
 
-	gr.lc.Debug("Bat dau gui yeu cau toi Device:%s", elementName)
-	err = gr.WriteCommandByResource(groupName, DeviceDr, string(grsStr), elementName)
+	gr.lc.Debug(fmt.Sprintf("Bat dau gui yeu cau toi Device:%s", elementName))
+	err = appModels.WriteCommandToOtherDeviceByResource(gr.nw, groupName, DeviceDr, string(grsStr), elementName)
 	if err != nil {
 		gr.lc.Error(err.Error())
 		return err
 	}
-	gr.lc.Debug("Gui yeu cau thanh cong toi Device:%s", elementName)
-	gr.lc.Debug("Da them Device:%s vao Group:%s", elementName, groupName)
+	gr.lc.Debug(fmt.Sprintf("Gui yeu cau thanh cong toi Device:%s", elementName))
+	gr.lc.Debug(fmt.Sprintf("Da them Device:%s vao Group:%s", elementName, groupName))
 
 	// cap nhap vao DB cua Group
 	// luon thay Name -> ID khi luu vao Database
-	pp, ok := group.Protocols[common.RelationProtocolNameConst]
-	if !ok {
-		pp = make(models.ProtocolProperties)
-	}
-	pp[elementID] = ""
-	group.Protocols[common.RelationProtocolNameConst] = pp
+	appModels.SetProperty(&group, common.RelationProtocolNameConst, elementID, "")
 	err = sv.UpdateDevice(group)
 	if err != nil {
 		gr.lc.Error(err.Error())
 		return err
 	}
-	gr.lc.Debug("Them thanh cong thong tin Device:%s vao Database cua Group:%s", elementName, groupName)
+	gr.lc.Debug(fmt.Sprintf("Them thanh cong thong tin Device:%s vao Database cua Group:%s", elementName, groupName))
 
-	gr.lc.Debug("Bat dau cap nhap thong tin cau hinh cua Group:%s toi Device:%s", groupName, elementName)
+	gr.lc.Debug(fmt.Sprintf("Bat dau cap nhap thong tin cau hinh cua Group:%s toi Device:%s", groupName, elementName))
+
 	// Cap nhap OnOff Schedules
-	err = gr.UpdateOnOffScheduleToElement(groupName, elementName)
-	if err != nil {
-		gr.lc.Error(err.Error())
-		return err
-	}
-	// Cap nhap Dimming Schedules
-	err = gr.UpdateDimmingScheduleToElement(groupName, elementName)
+	err = appModels.UpdateOnOffScheduleToElement(gr.nw, &group, OnOffScheduleDr, elementName)
 	if err != nil {
 		gr.lc.Error(err.Error())
 		return err
 	}
 
-	gr.lc.Debug("Cap nhap thanh cong thong tin cau hinh cua Group:%s toi Device:%s", groupName, elementName)
+	// Cap nhap Dimming Schedules
+	err = appModels.UpdateDimmingScheduleToElement(gr.nw, &group, DimmingScheduleDr, elementName)
+	if err != nil {
+		gr.lc.Error(err.Error())
+		return err
+	}
+
+	gr.lc.Debug(fmt.Sprintf("Cap nhap thanh cong thong tin cau hinh cua Group:%s toi Device:%s", groupName, elementName))
 	return nil
 }
 
 func (gr *LightGroup) deleteElement(groupName string, elementName string) error {
 	elementID := db.DB().NameToID(elementName)
 	if elementID == "" {
-		str := fmt.Sprintf("Khong ton tai Device:%s", elementName)
-		gr.lc.Debug(str)
+		gr.lc.Debug(fmt.Sprintf("Khong ton tai Device:%s", elementName))
 		return nil
 	}
 
@@ -116,8 +112,7 @@ func (gr *LightGroup) deleteElement(groupName string, elementName string) error 
 		}
 	}
 	if len(grs) == len(relations) {
-		str := fmt.Sprintf("Device:%s khong thuoc Group:%s", elementName, groupName)
-		gr.lc.Debug(str)
+		gr.lc.Debug(fmt.Sprintf("Device:%s khong thuoc Group:%s", elementName, groupName))
 		return nil
 	}
 
@@ -128,14 +123,14 @@ func (gr *LightGroup) deleteElement(groupName string, elementName string) error 
 		return err
 	}
 
-	gr.lc.Debug("Bat dau gui yeu cau toi Device:%s", elementName)
-	err = gr.WriteCommandByResource(groupName, DeviceDr, string(grsStr), elementName)
+	gr.lc.Debug(fmt.Sprintf("Bat dau gui yeu cau toi Device:%s", elementName))
+	err = appModels.WriteCommandToOtherDeviceByResource(gr.nw, groupName, DeviceDr, string(grsStr), elementName)
 	if err != nil {
 		gr.lc.Error(err.Error())
 		return err
 	}
-	gr.lc.Debug("Gui yeu cau thanh cong toi Device:%s", elementName)
-	gr.lc.Debug("Da them Device:%s vao Group:%s", elementName, groupName)
+	gr.lc.Debug(fmt.Sprintf("Gui yeu cau thanh cong toi Device:%s", elementName))
+	gr.lc.Debug(fmt.Sprintf("Da them Device:%s vao Group:%s", elementName, groupName))
 
 	// cap nhap vao DB cua Group
 	pp, ok := group.Protocols[common.RelationProtocolNameConst]
@@ -153,7 +148,7 @@ func (gr *LightGroup) deleteElement(groupName string, elementName string) error 
 		gr.lc.Error(err.Error())
 		return err
 	}
-	gr.lc.Debug("Xoa thanh cong thong tin Device:%s vao Database cua Group:%s", elementName, groupName)
+	gr.lc.Debug(fmt.Sprintf("Xoa thanh cong thong tin Device:%s vao Database cua Group:%s", elementName, groupName))
 
 	return nil
 }
@@ -168,22 +163,18 @@ func (gr *LightGroup) elementWriteHandler(groupName string, method string, eleme
 	case PutMethod:
 		err := gr.addElement(groupName, elementName)
 		if err != nil {
-			str := fmt.Sprintf("Them Device:%s gap loi:%s", elementName, err.Error())
-			gr.lc.Error(str)
+			gr.lc.Error(fmt.Sprintf("Them Device:%s gap loi:%s", elementName, err.Error()))
 			return err
 		}
-		str := fmt.Sprintf("Them thanh cong Device:%s vao Group:%s", elementName, groupName)
-		gr.lc.Debug(str)
+		gr.lc.Debug(fmt.Sprintf("Them thanh cong Device:%s vao Group:%s", elementName, groupName))
 		return nil
 	case DeleteMethod:
 		err := gr.deleteElement(groupName, elementName)
 		if err != nil {
-			str := fmt.Sprintf("Xoa Device:%s gap loi:%s", elementName, err.Error())
-			gr.lc.Error(str)
+			gr.lc.Error(fmt.Sprintf("Xoa Device:%s gap loi:%s", elementName, err.Error()))
 			return err
 		}
-		str := fmt.Sprintf("Xoa thanh cong Device:%s trong Group:%s", elementName, groupName)
-		gr.lc.Debug(str)
+		gr.lc.Debug(fmt.Sprintf("Xoa thanh cong Device:%s trong Group:%s", elementName, groupName))
 		return nil
 	default:
 		strErr := fmt.Sprintf("khong ho tro phuong thuc: %s", method)

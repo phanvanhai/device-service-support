@@ -50,7 +50,7 @@ func (s *Sensor) ConnectAndUpdate(dev *models.Device, versionInDev *uint64) (err
 		return nil
 	}
 
-	err = s.syscConfig(dev, versionInDev)
+	err = s.syncConfig(dev, versionInDev)
 	if err != nil {
 		return
 	}
@@ -61,9 +61,9 @@ func (s *Sensor) ConnectAndUpdate(dev *models.Device, versionInDev *uint64) (err
 	return
 }
 
-func (s *Sensor) syscConfig(dev *models.Device, versionInDev *uint64) error {
-	// update Realtim
-	err := appModels.UpdateRealtimeToDevice(s, dev.Name)
+func (s *Sensor) syncConfig(dev *models.Device, versionInDev *uint64) error {
+	// update Realtime
+	err := appModels.UpdateRealtimeToDevice(s, dev, RealtimeDr)
 	if err != nil {
 		return err
 	}

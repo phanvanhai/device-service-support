@@ -1,12 +1,12 @@
 package models
 
 import (
+	"fmt"
 	"time"
-)
 
-type Realtime interface {
-	WriteRealtimeToDevice(deviceName string, time uint64) error
-}
+	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
+	"github.com/edgexfoundry/go-mod-core-contracts/models"
+)
 
 func parseTimeToInt64(t time.Time) uint64 {
 	year, month, day := t.Date()
@@ -16,8 +16,15 @@ func parseTimeToInt64(t time.Time) uint64 {
 	return result
 }
 
-func UpdateRealtimeToDevice(realtimer Realtime, devName string) error {
+func UpdateRealtimeToDevice(cm NormalWriteCommand, dev *models.Device, resourceName string) error {
+	request, ok := NewCommandRequest(dev.Name, resourceName)
+	if !ok {
+		return fmt.Errorf("khong tim thay resource")
+	}
+
 	t := time.Now()
 	time64 := parseTimeToInt64(t)
-	return realtimer.WriteRealtimeToDevice(devName, time64)
+	cmvlConverted, _ := sdkModel.NewUint64Value(resourceName, 0, time64)
+
+	return cm.NormalWriteCommand(dev, request, cmvlConverted)
 }

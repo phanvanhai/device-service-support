@@ -2,6 +2,7 @@ package serial
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"strconv"
 	"time"
@@ -116,6 +117,7 @@ func (dr *Serial) receiverFrameRoutine() {
 	for {
 		payload, l := dr.receiverSerial()
 		if l > 0 {
+			log.Println("RX:", string(payload))
 			dr.bus.Publish(payload)
 		}
 	}

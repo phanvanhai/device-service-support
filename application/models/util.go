@@ -55,7 +55,7 @@ func SetProperty(dev *models.Device, protocolName string, propertyName string, v
 	if !ok {
 		pp = make(models.ProtocolProperties)
 	}
-	pp[protocolName] = propertyName
+	pp[propertyName] = value
 	dev.Protocols[protocolName] = pp
 }
 
@@ -68,6 +68,6 @@ func GetProperty(dev *models.Device, protocolName string, propertyName string) (
 	if !ok {
 		return "", false
 	}
-	str, ok := pp[protocolName]
+	str, ok := pp[propertyName]
 	return str, ok
 }
