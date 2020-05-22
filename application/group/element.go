@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/edgexfoundry/go-mod-core-contracts/models"
+
 	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
 
 	appModels "github.com/phanvanhai/device-service-support/application/models"
@@ -12,18 +14,13 @@ import (
 	"github.com/phanvanhai/device-service-support/support/db"
 )
 
-func (gr *LightGroup) addElement(groupName string, elementName string) error {
+func (gr *LightGroup) addElement(group *models.Device, elementName string) error {
+	groupName := group.Name
 	elementID := db.DB().NameToID(elementName)
 	if elementID == "" {
 		str := fmt.Sprintf("Khong ton tai Device:%s", elementName)
 		gr.lc.Error(str)
 		return fmt.Errorf(str)
-	}
-
-	sv := sdk.RunningService()
-	group, err := sv.GetDeviceByName(groupName)
-	if err != nil {
-		return err
 	}
 
 	// tao danh sach nhom cho Element
@@ -62,8 +59,9 @@ func (gr *LightGroup) addElement(groupName string, elementName string) error {
 
 	// cap nhap vao DB cua Group
 	// luon thay Name -> ID khi luu vao Database
-	appModels.SetProperty(&group, common.RelationProtocolNameConst, elementID, "")
-	err = sv.UpdateDevice(group)
+	appModels.SetProperty(group, common.RelationProtocolNameConst, elementID, "")
+	sv := sdk.RunningService()
+	err = sv.UpdateDevice(*group)
 	if err != nil {
 		gr.lc.Error(err.Error())
 		return err
@@ -73,14 +71,14 @@ func (gr *LightGroup) addElement(groupName string, elementName string) error {
 	gr.lc.Debug(fmt.Sprintf("Bat dau cap nhap thong tin cau hinh cua Group:%s toi Device:%s", groupName, elementName))
 
 	// Cap nhap OnOff Schedules
-	err = appModels.UpdateOnOffScheduleToElement(gr.nw, &group, OnOffScheduleDr, elementName)
+	err = appModels.UpdateOnOffScheduleToElement(gr.nw, group, OnOffScheduleDr, elementName)
 	if err != nil {
 		gr.lc.Error(err.Error())
 		return err
 	}
 
 	// Cap nhap Dimming Schedules
-	err = appModels.UpdateDimmingScheduleToElement(gr.nw, &group, DimmingScheduleDr, elementName)
+	err = appModels.UpdateDimmingScheduleToElement(gr.nw, group, DimmingScheduleDr, elementName)
 	if err != nil {
 		gr.lc.Error(err.Error())
 		return err
@@ -90,17 +88,12 @@ func (gr *LightGroup) addElement(groupName string, elementName string) error {
 	return nil
 }
 
-func (gr *LightGroup) deleteElement(groupName string, elementName string) error {
+func (gr *LightGroup) deleteElement(group *models.Device, elementName string, updateDB bool) error {
+	groupName := group.Name
 	elementID := db.DB().NameToID(elementName)
 	if elementID == "" {
 		gr.lc.Debug(fmt.Sprintf("Khong ton tai Device:%s", elementName))
 		return nil
-	}
-
-	sv := sdk.RunningService()
-	group, err := sv.GetDeviceByName(groupName)
-	if err != nil {
-		return err
 	}
 
 	// tao danh sach nhom cho Element
@@ -130,7 +123,11 @@ func (gr *LightGroup) deleteElement(groupName string, elementName string) error 
 		return err
 	}
 	gr.lc.Debug(fmt.Sprintf("Gui yeu cau thanh cong toi Device:%s", elementName))
-	gr.lc.Debug(fmt.Sprintf("Da them Device:%s vao Group:%s", elementName, groupName))
+	gr.lc.Debug(fmt.Sprintf("Da xoa Device:%s khoi Group:%s", elementName, groupName))
+
+	if !updateDB {
+		return nil
+	}
 
 	// cap nhap vao DB cua Group
 	pp, ok := group.Protocols[common.RelationProtocolNameConst]
@@ -143,7 +140,8 @@ func (gr *LightGroup) deleteElement(groupName string, elementName string) error 
 	}
 	delete(pp, elementID)
 	group.Protocols[common.RelationProtocolNameConst] = pp
-	err = sv.UpdateDevice(group)
+	sv := sdk.RunningService()
+	err = sv.UpdateDevice(*group)
 	if err != nil {
 		gr.lc.Error(err.Error())
 		return err
@@ -153,7 +151,7 @@ func (gr *LightGroup) deleteElement(groupName string, elementName string) error 
 	return nil
 }
 
-func (gr *LightGroup) elementWriteHandler(groupName string, method string, elementName string) error {
+func (gr *LightGroup) elementWriteHandler(group *models.Device, method string, elementName string) error {
 	if db.DB().NameToID(elementName) == "" {
 		strErr := fmt.Sprintf("khong ton tai Device: %s", elementName)
 		gr.lc.Error(strErr)
@@ -161,24 +159,35 @@ func (gr *LightGroup) elementWriteHandler(groupName string, method string, eleme
 	}
 	switch strings.ToLower(method) {
 	case PutMethod:
-		err := gr.addElement(groupName, elementName)
+		err := gr.addElement(group, elementName)
 		if err != nil {
 			gr.lc.Error(fmt.Sprintf("Them Device:%s gap loi:%s", elementName, err.Error()))
 			return err
 		}
-		gr.lc.Debug(fmt.Sprintf("Them thanh cong Device:%s vao Group:%s", elementName, groupName))
+		gr.lc.Debug(fmt.Sprintf("Them thanh cong Device:%s vao Group:%s", elementName, group.Name))
 		return nil
 	case DeleteMethod:
-		err := gr.deleteElement(groupName, elementName)
+		err := gr.deleteElement(group, elementName, true)
 		if err != nil {
 			gr.lc.Error(fmt.Sprintf("Xoa Device:%s gap loi:%s", elementName, err.Error()))
 			return err
 		}
-		gr.lc.Debug(fmt.Sprintf("Xoa thanh cong Device:%s trong Group:%s", elementName, groupName))
+		gr.lc.Debug(fmt.Sprintf("Xoa thanh cong Device:%s trong Group:%s", elementName, group.Name))
 		return nil
 	default:
 		strErr := fmt.Sprintf("khong ho tro phuong thuc: %s", method)
 		gr.lc.Error(strErr)
 		return fmt.Errorf(strErr)
+	}
+}
+
+func (gr *LightGroup) deleteAllElement(groupName string) {
+	relations := db.DB().GroupDotElement(groupName)
+	group := models.Device{
+		Name: groupName,
+	}
+
+	for _, relation := range relations {
+		gr.deleteElement(&group, relation.Element, false)
 	}
 }

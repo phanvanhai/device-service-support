@@ -14,9 +14,6 @@ import (
 )
 
 func (l *Light) EventCallback(async sdkModel.AsyncValues) error {
-	// -----------------------------------
-	return nil
-	// ------------------------------------------
 	sv := sdk.RunningService()
 	dev, err := sv.GetDeviceByName(async.DeviceName)
 	if err != nil {

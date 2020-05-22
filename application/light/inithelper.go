@@ -58,12 +58,13 @@ func (l *Light) ConnectAndUpdate(dev *models.Device, versionInDev *uint64) (err 
 		}
 
 		// do something: ...
-
-		ver, err := appModels.ReadVersionConfigFromDevice(l, dev, PingDr)
-		if err != nil {
-			l.lc.Error(fmt.Sprintf("Ket thuc tien trinh kiem tra ket noi va dong bo thiet bi vi:%s", err.Error()))
-			return err
-		}
+		// time.Sleep(2 * time.Second)
+		// ver, err := appModels.ReadVersionConfigFromDevice(l, dev, PingDr)
+		// if err != nil {
+		// 	l.lc.Error(fmt.Sprintf("Ket thuc tien trinh kiem tra ket noi va dong bo thiet bi vi:%s", err.Error()))
+		// 	return err
+		// }
+		ver := uint64(0)
 		versionInDev = &ver
 	}
 

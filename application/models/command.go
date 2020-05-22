@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	sdkCommand "github.com/edgexfoundry/device-sdk-go"
 	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
@@ -53,6 +54,7 @@ func GroupWriteUnicastCommandToAll(nw nw.Network, group string, resouce string, 
 	errs := make([]ElementError, len(relations))
 
 	for i, r := range relations {
+		time.Sleep(2 * time.Second)
 		err := WriteCommandToOtherDeviceByResource(nw, group, resouce, body, r.Element)
 		errs[i].Name = r.Element
 		if err == nil {

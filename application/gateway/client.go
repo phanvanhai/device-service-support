@@ -47,7 +47,7 @@ func (g *Gateway) HandleReadCommands(gatewayName string, protocols map[string]mo
 			return nil, fmt.Errorf(strErr)
 		}
 	}
-	return nil, nil
+	return res, nil
 }
 
 func (g *Gateway) HandleWriteCommands(gatewayName string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest, params []*sdkModel.CommandValue) error {

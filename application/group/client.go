@@ -60,6 +60,8 @@ func (gr *LightGroup) UpdateDeviceCallback(groupName string, protocols map[strin
 func (gr *LightGroup) RemoveDeviceCallback(groupName string, protocols map[string]models.ProtocolProperties) error {
 	gr.lc.Debug(fmt.Sprintf("a Group is deleted in MetaData:%s", groupName))
 
+	gr.deleteAllElement(groupName)
+
 	err := gr.nw.DeleteObject(groupName, protocols)
 	return err
 }
@@ -120,8 +122,12 @@ func (gr *LightGroup) HandleWriteCommands(groupName string, protocols map[string
 		method, _ := params[0].StringValue()
 		elementName, _ := params[1].StringValue()
 		gr.lc.Debug(fmt.Sprintf("Manager Device: method:%s - Device:%s", method, elementName))
-		err := gr.elementWriteHandler(groupName, method, elementName)
-		return err
+		err := gr.elementWriteHandler(&dev, method, elementName)
+		if err != nil {
+			gr.lc.Error(err.Error())
+			return err
+		}
+		return nil
 	}
 
 	for i, p := range params {

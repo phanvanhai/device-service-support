@@ -334,7 +334,7 @@ func (zb *Zigbee) UpdateFirmware(deviceName string, file interface{}) error {
 	zb.mutex.Lock()
 	defer zb.mutex.Unlock()
 
-	cmd := exec.Command("./commander/commander", "flash", file.(string), "--address 0x80000")
+	cmd := exec.Command("../commander/commander", "flash", file.(string), "--address", "0x80000")
 	var out bytes.Buffer
 	multi := io.MultiWriter(os.Stdout, &out)
 	cmd.Stdout = multi
@@ -418,19 +418,13 @@ func (zb *Zigbee) ConvertResourceByDevice(fromDevName string, fromRs string, toD
 	}
 
 	svc := sdk.RunningService()
-	_, ok1 := svc.DeviceResource(fromDevName, fromRs, "")
-	_, ok2 := svc.DeviceResource(toDevName, toRs, "")
+	_, ok := svc.DeviceResource(toDevName, toRs, "")
 
-	if !ok1 || !ok2 {
+	if !ok {
 		str := fmt.Sprintf("Khong tim thay Resource tu Cache DS")
 		zb.logger.Error(str)
 		return ""
 	}
-
-	// ok := reflect.DeepEqual(rs1.Properties, rs2.Properties)
-	// if !ok {
-	// 	return ""
-	// }
 
 	return toRs
 }
@@ -465,7 +459,7 @@ func (zb *Zigbee) ReadCommands(name string, reqs []*sdkModel.CommandRequest) ([]
 			return nil, err
 		}
 
-		r := models.CommandPacket{}
+		r := models.Response{}
 		err = json.Unmarshal(rep.([]byte), &r)
 		if err != nil {
 			return nil, err
@@ -480,13 +474,19 @@ func (zb *Zigbee) ReadCommands(name string, reqs []*sdkModel.CommandRequest) ([]
 			return nil, err
 		}
 
+		rp := models.Response{}
+		err = json.Unmarshal(rep.([]byte), &rp)
+		if err != nil {
+			return nil, err
+		}
+		if rp.StatusCode != uint8(cm.Success) {
+			return nil, fmt.Errorf(rp.StatusMessage)
+		}
+
 		r := models.CommandPacket{}
 		err = json.Unmarshal(rep.([]byte), &r)
 		if err != nil {
 			return nil, err
-		}
-		if r.StatusCode != uint8(cm.Success) {
-			return nil, fmt.Errorf(r.StatusMessage)
 		}
 
 		async, err := r.NetEvent.ToEdgeEvent()
@@ -529,12 +529,14 @@ func (zb *Zigbee) WriteCommands(name string, reqs []*sdkModel.CommandRequest, pa
 		return err
 	}
 
-	r := models.CommandPacket{}
+	r := models.Response{}
 	err = json.Unmarshal(rep.([]byte), &r)
 	if err != nil {
 		return err
 	}
+	zb.logger.Debug(fmt.Sprintln(r))
 	if r.StatusCode != uint8(cm.Success) {
+		zb.logger.Error(fmt.Sprintf("Loi status code:%d--%s", r.StatusCode, r.StatusMessage))
 		return fmt.Errorf(r.StatusMessage)
 	}
 
