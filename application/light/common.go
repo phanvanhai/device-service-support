@@ -12,7 +12,7 @@ const (
 	DimmingDr         = "Light-Dimming"
 	OnOffScheduleDr   = "Light-OnOffSchedule"
 	DimmingScheduleDr = "Light-DimmingSchedule"
-	MeasurePowerDr    = "Light-MeasurePower"
+	LightMeasureDr    = "Light-LightMeasure"
 	ReportTimeDr      = "Light-ReportTime"
 	RealtimeDr        = "Light-Realtime"
 	HistoricalEventDr = "Light-HistoricalEvent"
