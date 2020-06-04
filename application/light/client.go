@@ -147,6 +147,9 @@ func (l *Light) HandleReadCommands(deviceName string, protocols map[string]model
 			// Lay thong tin tu Support Database va tao ket qua
 			groups := appModels.GetGroupList(dev.Name)
 			res[i] = appModels.DimmingScheduleRead(&dev, DimmingScheduleDr, groups)
+		case ReportTimeDr:
+			time := appModels.GetReportTimeFromDB(dev)
+			res[i], _ = sdkModel.NewUint16Value(ReportTimeDr, 0, time)
 		default:
 			cmvl, err := l.NormalReadCommand(&dev, &r)
 			if err != nil {
@@ -172,6 +175,22 @@ func (l *Light) HandleWriteCommands(deviceName string, protocols map[string]mode
 		l.lc.Info(fmt.Sprintf("LightApplication.HandleWriteCommands: resource: %v, parameters: %v", reqs[i].DeviceResourceName, params[i]))
 
 		switch p.DeviceResourceName {
+		case ReportTimeDr:
+			value, _ := p.Uint16Value()
+			appModels.FillReportTimeToDB(&dev, strconv.FormatUint(uint64(value), 10))
+			err = appModels.UpdateReportTimeConfigToDevice(l, &dev, ReportTimeDr, value)
+			if err != nil {
+				l.lc.Error(err.Error())
+				return err
+			}
+
+			// update report time vao DB
+			err = sv.UpdateDevice(dev)
+			if err != nil {
+				l.lc.Error(err.Error())
+				return err
+			}
+
 		case OnOffScheduleDr:
 			groups := appModels.GetGroupList(dev.Name)
 			// chuyen doi noi dung r.Value

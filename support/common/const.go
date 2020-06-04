@@ -13,4 +13,7 @@ const (
 	ScheduleProtocolName        = "Schedule"
 	OnOffSchedulePropertyName   = "OnOff"
 	DimmingSchedulePropertyName = "Dimming"
+
+	ReportTimeProtocolName = "ReportTime"
+	ReportTimePropertyName = "LightSensor"
 )

@@ -89,6 +89,14 @@ func (l *Light) syncConfig(dev *models.Device) error {
 		return err
 	}
 
+	// update report time
+	l.lc.Debug("update report time config to Device")
+	err = appModels.UpdateReportTimeConfigToDevice(l, dev, ReportTimeDr, appModels.GetReportTimeFromDB(*dev))
+	if err != nil {
+		l.lc.Error(err.Error())
+		return err
+	}
+
 	// update Groups latest
 	l.lc.Debug("update groups to Device")
 	err = appModels.UpdateGroupToDevice(l, l.nw, dev, GroupDr, GroupLimit)
