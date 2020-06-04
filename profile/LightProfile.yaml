@@ -11,7 +11,7 @@ deviceResources:
     description: "Light On/Off."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "123400"}
+      { AttZigbee: "010400060000"}
     properties:
       value:
         { type: "Bool", readWrite: "RW", defaultValue: "false" }
@@ -22,7 +22,7 @@ deviceResources:
     description: "Light Dimming."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "123401"}
+      { AttZigbee: "010400080000"}
     properties:
       value:
         { type: "Uint16", readWrite: "RW", defaultValue: "0" }
@@ -33,7 +33,7 @@ deviceResources:
     description: "Light OnOffSchedule."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "123402"}
+      { AttZigbee: "0104FC100010"}
     properties:
       value:
         { type: "String", readWrite: "RW", defaultValue: "" }
@@ -45,7 +45,7 @@ deviceResources:
     description: "Light DimmingSchedule."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "123403"}
+      { AttZigbee: "0104FC100011"}
     properties:
       value:
         { type: "String", readWrite: "RW", defaultValue: "" }
@@ -53,14 +53,14 @@ deviceResources:
       units:
         { type: "String", readWrite: "R", defaultValue: "" }  
   -
-    name: "Light-MeasurePower"
-    description: "Light MeasurePower."
+    name: "Light-LightMeasure"
+    description: "Light LightMeasure."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "123408"}
+      { AttZigbee: "010404000000"}
     properties:
       value:
-        { type: "Uint8", readWrite: "R", minimum: "0", maximum: "100", defaultValue: "0" }        
+        { type: "Uint16", readWrite: "R", minimum: "0", maximum: "100", defaultValue: "0" }        
       units:
         { type: "String", readWrite: "R", defaultValue: "%" }         
   -
@@ -68,7 +68,7 @@ deviceResources:
     description: "Light ReportTime."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "123404"}
+      { AttZigbee: "0104FC100013"}
     properties:
       value:
         { type: "Uint16", readWrite: "RW", defaultValue: "0" }      
@@ -79,7 +79,7 @@ deviceResources:
     description: "Light Realtime."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "123405"}
+      { AttZigbee: "0104FC100016"}
     properties:
       value:
         { type: "Uint64", readWrite: "RW", defaultValue: "0" }      
@@ -90,7 +90,7 @@ deviceResources:
     description: "Light HistoricalEvent."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "123406"}
+      { AttZigbee: "0104FC100014"}
     properties:
       value:
         { type: "String", readWrite: "R", defaultValue: "" }
@@ -102,7 +102,7 @@ deviceResources:
     description: "Light Group."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "123407"}
+      { AttZigbee: "0104FC100012"}
     properties:
       value:
         { type: "String", readWrite: "RW", defaultValue: "" }
@@ -123,14 +123,20 @@ deviceResources:
     description: "Light Ping."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "120000"}
+      { AttZigbee: "0104FC100015"}
     properties:
       value:
-        { type: "String", readWrite: "R", defaultValue: "" }      
+        { type: "Uint64", readWrite: "RW", defaultValue: "" }      
       units:
         { type: "String", readWrite: "R", defaultValue: "Ping" }       
 
 deviceCommands:
+  -
+    name: "Ping"
+    get:
+      - { operation: "get", deviceResource: "Light-Ping"}
+    set:      
+      - { operation: "set", deviceResource: "Light-Ping"} 
   -
     name: "OnOff"
     get:
@@ -156,9 +162,9 @@ deviceCommands:
     set:      
       - { operation: "set", deviceResource: "Light-DimmingSchedule"} 
   -
-    name: "MeasurePower"
+    name: "LightMeasure"
     get:
-      - { operation: "get", deviceResource: "Light-MeasurePower"}
+      - { operation: "get", deviceResource: "Light-LightMeasure"}
   -
     name: "ReportTime"
     get:
@@ -284,14 +290,14 @@ coreCommands:
           description: "service unavailable"
           expectedValues: []                         
   -
-    name: "MeasurePower"
+    name: "LightMeasure"
     get:
-      path: "/api/v1/device/{deviceId}/MeasurePower"
+      path: "/api/v1/device/{deviceId}/LightMeasure"
       responses:
         -
           code: "200"
           description: ""
-          expectedValues: ["Light-MeasurePower"]
+          expectedValues: ["Light-LightMeasure"]
         -
           code: "503"
           description: "service unavailable"

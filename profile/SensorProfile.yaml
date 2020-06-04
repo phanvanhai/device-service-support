@@ -11,7 +11,7 @@ deviceResources:
     description: "Sensor On/Off."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "123400"}
+      { AttZigbee: "010400060000"}
     properties:
       value:
         { type: "Bool", readWrite: "RW", defaultValue: "false" }
@@ -33,7 +33,7 @@ deviceResources:
     description: "Sensor ReportTime."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "123404"}
+      { AttZigbee: "0104FC100013"}
     properties:
       value:
         { type: "Uint16", readWrite: "RW", defaultValue: "0" }      
@@ -44,7 +44,7 @@ deviceResources:
     description: "Sensor Realtime."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "123405"}
+      { AttZigbee: "0104FC100016"}
     properties:
       value:
         { type: "Uint64", readWrite: "RW", defaultValue: "0" }      
@@ -55,7 +55,7 @@ deviceResources:
     description: "Sensor HistoricalEvent."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "123406"}
+      { AttZigbee: "0104FC100014"}
     properties:
       value:
         { type: "String", readWrite: "R", defaultValue: "" }
@@ -76,10 +76,10 @@ deviceResources:
     description: "Sensor Ping."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "120000"}
+      { AttZigbee: "0104FC100015"}
     properties:
       value:
-        { type: "String", readWrite: "R", defaultValue: "" }      
+        { type: "Uint64", readWrite: "RW", defaultValue: "" }      
       units:
         { type: "String", readWrite: "R", defaultValue: "Ping" }       
 
@@ -92,9 +92,9 @@ deviceCommands:
     set:      
       - { operation: "set", deviceResource: "Sensor-OnOff"}
   -
-    name: "MeasureLight"
+    name: "MeasurePower"
     get:
-      - { operation: "get", deviceResource: "Sensor-MeasureLight"}
+      - { operation: "get", deviceResource: "Sensor-MeasurePower"}
   -
     name: "ReportTime"
     get:

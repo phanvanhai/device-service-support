@@ -11,7 +11,7 @@ deviceResources:
     description: "LightGroup On/Off."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "123400"}
+      { AttZigbee: "010400060000"}
     properties:
       value:
         { type: "Bool", readWrite: "W", defaultValue: "false" }
@@ -22,7 +22,7 @@ deviceResources:
     description: "LightGroup Dimming."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "123401"}
+      { AttZigbee: "010400080000"}
     properties:
       value:
         { type: "Uint16", readWrite: "W", defaultValue: "0" }
@@ -33,7 +33,7 @@ deviceResources:
     description: "LightGroup OnOffSchedule."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "123402"}
+      { AttZigbee: "0104FC100010"}
     properties:
       value:
         { type: "String", readWrite: "RW", defaultValue: "" }        
@@ -44,7 +44,7 @@ deviceResources:
     description: "LightGroup DimmingSchedule."
     attributes:
       # can sua AttZigbee
-      { AttZigbee: "123403"}
+      { AttZigbee: "0104FC100011"}
     properties:
       value:
         { type: "String", readWrite: "RW", defaultValue: "" }        
@@ -63,7 +63,7 @@ deviceResources:
     description: "LightGroup Device."
     attributes:
       # can sua AttZigbee trung voi Att Group of Device
-      { AttZigbee: "123407"}
+      { AttZigbee: "0104FC100012"}
     properties:
       value:
         { type: "String", readWrite: "W", defaultValue: "" }
