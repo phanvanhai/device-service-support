@@ -11,6 +11,7 @@ import (
 	"github.com/phanvanhai/device-service-support/transceiver"
 )
 
+const NetworkTypeConfigConst = "NetworkType"
 const (
 	ZIGBEE = "zigbee"
 )

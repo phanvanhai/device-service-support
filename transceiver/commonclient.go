@@ -7,6 +7,7 @@ import (
 	"github.com/phanvanhai/device-service-support/transceiver/serial"
 )
 
+const TransceiverTypeConfigConst = "TransceiverType"
 const (
 	SERIAL = "serial"
 )
