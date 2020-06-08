@@ -8,13 +8,13 @@ import (
 )
 
 const (
-	OnOffDr           = "Sensor-OnOff"
-	MeasurePowerDr    = "Sensor-MeasurePower"
-	ReportTimeDr      = "Sensor-ReportTime"
-	RealtimeDr        = "Sensor-Realtime"
-	HistoricalEventDr = "Sensor-HistoricalEvent"
-	ScenarioDr        = "Sensor-Scenario"
-	PingDr            = "Sensor-Ping"
+	OnOffDr           = "Sensor_OnOff"
+	MeasurePowerDr    = "Sensor_MeasurePower"
+	ReportTimeDr      = "Sensor_ReportTime"
+	RealtimeDr        = "Sensor_Realtime"
+	HistoricalEventDr = "Sensor_HistoricalEvent"
+	ScenarioDr        = "Sensor_Scenario"
+	PingDr            = "Sensor_Ping"
 )
 
 const (

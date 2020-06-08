@@ -6,9 +6,9 @@ import (
 )
 
 const (
-	OnOffRelay1Dr          = "Gateway-OnOffRelay1"
-	EventDr                = "Gateway-Event"
-	UpdateDeviceFirmwareDr = "Gateway-UpdateDeviceFirmware"
+	OnOffRelay1Dr          = "Gateway_OnOffRelay1"
+	EventDr                = "Gateway_Event"
+	UpdateDeviceFirmwareDr = "Gateway_UpdateDeviceFirmware"
 )
 
 const (

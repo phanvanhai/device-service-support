@@ -8,14 +8,14 @@ import (
 )
 
 const (
-	OnOffDr           = "LightGroup-OnOff"
-	DimmingDr         = "LightGroup-Dimming"
-	OnOffScheduleDr   = "LightGroup-OnOffSchedule"
-	DimmingScheduleDr = "LightGroup-DimmingSchedule"
-	MethodDr          = "LightGroup-Method"
-	DeviceDr          = "LightGroup-Device"
-	ListDeviceDr      = "LightGroup-ListDevice"
-	ScenarioDr        = "LightGroup-Scenario"
+	OnOffDr           = "LightGroup_OnOff"
+	DimmingDr         = "LightGroup_Dimming"
+	OnOffScheduleDr   = "LightGroup_OnOffSchedule"
+	DimmingScheduleDr = "LightGroup_DimmingSchedule"
+	MethodDr          = "LightGroup_Method"
+	DeviceDr          = "LightGroup_Device"
+	ListDeviceDr      = "LightGroup_ListDevice"
+	ScenarioDr        = "LightGroup_Scenario"
 )
 
 const (

@@ -8,17 +8,17 @@ import (
 )
 
 const (
-	OnOffDr           = "Light-OnOff"
-	DimmingDr         = "Light-Dimming"
-	OnOffScheduleDr   = "Light-OnOffSchedule"
-	DimmingScheduleDr = "Light-DimmingSchedule"
-	LightMeasureDr    = "Light-LightMeasure"
-	ReportTimeDr      = "Light-ReportTime"
-	RealtimeDr        = "Light-Realtime"
-	HistoricalEventDr = "Light-HistoricalEvent"
-	GroupDr           = "Light-Group"
-	ScenarioDr        = "Light-Scenario"
-	PingDr            = "Light-Ping"
+	OnOffDr           = "Light_OnOff"
+	DimmingDr         = "Light_Dimming"
+	OnOffScheduleDr   = "Light_OnOffSchedule"
+	DimmingScheduleDr = "Light_DimmingSchedule"
+	LightMeasureDr    = "Light_LightMeasure"
+	ReportTimeDr      = "Light_ReportTime"
+	RealtimeDr        = "Light_Realtime"
+	HistoricalEventDr = "Light_HistoricalEvent"
+	GroupDr           = "Light_Group"
+	ScenarioDr        = "Light_Scenario"
+	PingDr            = "Light_Ping"
 )
 
 const (

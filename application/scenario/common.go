@@ -3,8 +3,8 @@ package scenario
 import "github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 
 const (
-	TriggerDr = "Scenario-Trigger"
-	ContentDr = "Scenario-Content"
+	TriggerDr = "Scenario_Trigger"
+	ContentDr = "Scenario_Content"
 )
 
 const (
