@@ -5,7 +5,7 @@ import (
 
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	"github.com/phanvanhai/device-service-support/support/pubsub"
-	"github.com/phanvanhai/device-service-support/transceiver"
+	"github.com/phanvanhai/device-service-support/transfer"
 )
 
 var zb *Zigbee
@@ -13,12 +13,12 @@ var zb *Zigbee
 type Zigbee struct {
 	logger   logger.LoggingClient
 	config   map[string]string
-	tc       transceiver.Transceiver
+	tc       transfer.Transfer
 	eventBus *pubsub.Publisher
 	mutex    sync.Mutex
 }
 
-func NewZigbeeClient(lc logger.LoggingClient, tc transceiver.Transceiver, config map[string]string) (*Zigbee, error) {
+func NewZigbeeClient(lc logger.LoggingClient, tc transfer.Transfer, config map[string]string) (*Zigbee, error) {
 	if zb == nil {
 		var err error
 		zb, err = initialize(lc, tc, config)

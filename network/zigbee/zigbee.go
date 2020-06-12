@@ -22,7 +22,7 @@ import (
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	contract "github.com/edgexfoundry/go-mod-core-contracts/models"
 	"github.com/phanvanhai/device-service-support/support/pubsub"
-	"github.com/phanvanhai/device-service-support/transceiver"
+	"github.com/phanvanhai/device-service-support/transfer"
 )
 
 var (
@@ -31,7 +31,7 @@ var (
 	responseAddObject int64
 )
 
-func initialize(lc logger.LoggingClient, tc transceiver.Transceiver, config map[string]string) (*Zigbee, error) {
+func initialize(lc logger.LoggingClient, tc transfer.Transfer, config map[string]string) (*Zigbee, error) {
 	zb := &Zigbee{
 		logger: lc,
 		tc:     tc,

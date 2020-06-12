@@ -9,7 +9,7 @@ import (
 
 	nw "github.com/phanvanhai/device-service-support/network"
 	db "github.com/phanvanhai/device-service-support/support/db"
-	tc "github.com/phanvanhai/device-service-support/transceiver"
+	tc "github.com/phanvanhai/device-service-support/transfer"
 
 	gatewayApp "github.com/phanvanhai/device-service-support/application/gateway"
 	lightGroupApp "github.com/phanvanhai/device-service-support/application/group"
@@ -38,7 +38,7 @@ type Application interface {
 }
 
 // NewApplicationClient tao 1 doi tuong Application
-func NewApplicationClient(lc logger.LoggingClient, asyncCh chan<- *sdkModel.AsyncValues, nw nw.Network, tc tc.Transceiver, deviceName string) (Application, error) {
+func NewApplicationClient(lc logger.LoggingClient, asyncCh chan<- *sdkModel.AsyncValues, nw nw.Network, tc tc.Transfer, deviceName string) (Application, error) {
 	profileName := db.DB().GetProfileName(deviceName)
 	switch profileName {
 	case lightApp.Name:

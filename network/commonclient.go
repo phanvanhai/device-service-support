@@ -8,7 +8,7 @@ import (
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
 	"github.com/phanvanhai/device-service-support/network/zigbee"
-	"github.com/phanvanhai/device-service-support/transceiver"
+	"github.com/phanvanhai/device-service-support/transfer"
 )
 
 const NetworkTypeConfigConst = "NetworkType"
@@ -70,7 +70,7 @@ type Network interface {
 	CheckExist(name string) bool
 }
 
-func NewNetworkClient(networkType string, tc transceiver.Transceiver, lc logger.LoggingClient, config map[string]string) (Network, error) {
+func NewNetworkClient(networkType string, tc transfer.Transfer, lc logger.LoggingClient, config map[string]string) (Network, error) {
 	switch nw := strings.ToLower(networkType); nw {
 	case ZIGBEE:
 		return zigbee.NewZigbeeClient(lc, tc, config)
