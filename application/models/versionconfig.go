@@ -6,7 +6,7 @@ import (
 
 	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
-	"github.com/phanvanhai/device-service-support/support/common"
+	"github.com/phanvanhai/device-service-support/common"
 )
 
 const VersionConfigInitStringValueConst = "1"

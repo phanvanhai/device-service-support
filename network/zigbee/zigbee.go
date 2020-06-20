@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/phanvanhai/device-service-support/support/common"
+	"github.com/phanvanhai/device-service-support/common"
 
 	"github.com/phanvanhai/device-service-support/network/zigbee/cache"
 	"github.com/phanvanhai/device-service-support/network/zigbee/cm"
@@ -21,8 +21,8 @@ import (
 	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	contract "github.com/edgexfoundry/go-mod-core-contracts/models"
-	"github.com/phanvanhai/device-service-support/support/pubsub"
 	"github.com/phanvanhai/device-service-support/transfer"
+	"github.com/phanvanhai/device-service-support/transfer/pubsub"
 )
 
 var (

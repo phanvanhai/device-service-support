@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/phanvanhai/device-service-support/support/pubsub"
+	"github.com/phanvanhai/device-service-support/transfer/pubsub"
 	"github.com/tarm/serial"
 )
 

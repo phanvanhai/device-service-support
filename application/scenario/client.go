@@ -10,7 +10,7 @@ import (
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
 
 	appModels "github.com/phanvanhai/device-service-support/application/models"
-	"github.com/phanvanhai/device-service-support/support/common"
+	"github.com/phanvanhai/device-service-support/common"
 	"github.com/phanvanhai/device-service-support/support/db"
 )
 

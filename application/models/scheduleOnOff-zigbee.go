@@ -11,7 +11,7 @@ import (
 	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
 	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
-	"github.com/phanvanhai/device-service-support/support/common"
+	"github.com/phanvanhai/device-service-support/common"
 
 	"github.com/phanvanhai/device-service-support/support/db"
 

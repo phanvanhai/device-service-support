@@ -10,7 +10,7 @@ import (
 	sdk "github.com/edgexfoundry/device-sdk-go/pkg/service"
 
 	appModels "github.com/phanvanhai/device-service-support/application/models"
-	"github.com/phanvanhai/device-service-support/support/common"
+	"github.com/phanvanhai/device-service-support/common"
 	"github.com/phanvanhai/device-service-support/support/db"
 )
 

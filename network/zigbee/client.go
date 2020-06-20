@@ -4,8 +4,8 @@ import (
 	"sync"
 
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
-	"github.com/phanvanhai/device-service-support/support/pubsub"
 	"github.com/phanvanhai/device-service-support/transfer"
+	"github.com/phanvanhai/device-service-support/transfer/pubsub"
 )
 
 var zb *Zigbee
