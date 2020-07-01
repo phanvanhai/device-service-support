@@ -5,6 +5,7 @@ import (
 
 	sdkModel "github.com/edgexfoundry/device-sdk-go/pkg/models"
 	"github.com/edgexfoundry/go-mod-core-contracts/models"
+	"github.com/stianeikeland/go-rpio"
 )
 
 func (g *Gateway) EventCallback(async sdkModel.AsyncValues) error {
@@ -13,6 +14,11 @@ func (g *Gateway) EventCallback(async sdkModel.AsyncValues) error {
 }
 
 func (g *Gateway) Initialize(dev *models.Device) error {
+	if err := rpio.Open(); err != nil {
+		g.lc.Error(err.Error())
+	}
+	// Use mcu pin 10, corresponds to physical pin 19 on the pi
+	g.relay1 = rpio.Pin(10)
 	return nil
 }
 

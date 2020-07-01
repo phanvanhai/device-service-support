@@ -3,6 +3,7 @@ package gateway
 import (
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	nw "github.com/phanvanhai/device-service-support/network"
+	"github.com/stianeikeland/go-rpio"
 )
 
 const (
@@ -20,7 +21,7 @@ var g *Gateway
 type Gateway struct {
 	lc     logger.LoggingClient
 	nw     nw.Network
-	relay1 bool
+	relay1 rpio.Pin
 }
 
 func NewClient(lc logger.LoggingClient, nw nw.Network) (*Gateway, error) {
